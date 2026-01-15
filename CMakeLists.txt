@@ -9,5 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
-add_subdirectory(math/practices)
-add_subdirectory(cpp/examples)
+add_subdirectory(math)
+add_subdirectory(cpp)
+add_subdirectory(opengl)
