@@ -24,7 +24,7 @@ int Bool(float probability) {
   uniform_real_distribution get{0.0, 1.0};
   return probability > get(engine);
 }
-} // namespace Random
+}  // namespace Random
 
 int main() {
   using std::cout, std::endl;

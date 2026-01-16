@@ -4,7 +4,7 @@
 #include <vector>
 
 template <typename TX>
-std::vector<double> n_average(const std::vector<TX> &x, int n) {
+std::vector<double> n_average(const std::vector<TX>& x, int n) {
   std::vector<double> avgs;
 
   int size = x.size();
@@ -17,8 +17,8 @@ std::vector<double> n_average(const std::vector<TX> &x, int n) {
 }
 
 template <typename TX, typename TY>
-std::vector<double> derivative_central(const std::vector<TX> &x,
-                                       const std::vector<TY> &y) {
+std::vector<double> derivative_central(const std::vector<TX>& x,
+                                       const std::vector<TY>& y) {
   std::vector<double> derivatives;
 
   int n = x.size();
@@ -32,8 +32,8 @@ std::vector<double> derivative_central(const std::vector<TX> &x,
 }
 
 template <typename TX, typename TY>
-std::vector<double> derivative(const std::vector<TX> &x,
-                               const std::vector<TY> &y) {
+std::vector<double> derivative(const std::vector<TX>& x,
+                               const std::vector<TY>& y) {
   std::vector<double> derivatives;
 
   int n = x.size();
@@ -46,7 +46,7 @@ std::vector<double> derivative(const std::vector<TX> &x,
   return derivatives;
 }
 
-std::string to_string(const std::vector<double> &vec) {
+std::string to_string(const std::vector<double>& vec) {
   auto transformed =
       vec | std::views::transform([](double v) { return std::to_string(v); });
 
@@ -66,7 +66,7 @@ std::string to_string(const std::vector<double> &vec) {
 
 int main(void) {
   std::vector<double> x = {0.0, 1.0, 2.0, 3.0, 4.0};
-  std::vector<double> y = {0.0, 1.0, 4.0, 9.0, 16.0}; // y = x^2
+  std::vector<double> y = {0.0, 1.0, 4.0, 9.0, 16.0};  // y = x^2
 
   auto der = derivative_central(x, y);
   std::cout << "Derivatives (central): " << to_string(der) << std::endl;

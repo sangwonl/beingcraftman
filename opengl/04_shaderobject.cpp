@@ -1,14 +1,14 @@
 #define GLFW_INCLUDE_NONE
 
-#include <iostream>
-
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
+#include <iostream>
+
 #include "module/Shader.hpp"
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void processInput(GLFWwindow *window);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -26,7 +26,7 @@ int main() {
 #endif
 
   // glfw window creation
-  GLFWwindow *window =
+  GLFWwindow* window =
       glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
   if (window == NULL) {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -47,16 +47,16 @@ int main() {
 
   // set up vertex data (andd buffer(s)) and configure vertex attributes
   float vertices[] = {
-      0.5f,  0.5f,  0.0f, // top right
-      0.5f,  -0.5f, 0.0f, // bottom right
-      -0.5f, -0.5f, 0.0f, // bottom left
-      -0.5f, 0.5f,  0.0f, // top left
+      0.5f,  0.5f,  0.0f,  // top right
+      0.5f,  -0.5f, 0.0f,  // bottom right
+      -0.5f, -0.5f, 0.0f,  // bottom left
+      -0.5f, 0.5f,  0.0f,  // top left
   };
 
   unsigned int indices[] = {
       // note that we start from 0!
-      0, 1, 3, // first triangle
-      1, 2, 3  // second triangle
+      0, 1, 3,  // first triangle
+      1, 2, 3   // second triangle
   };
 
   unsigned int VBO, VAO, EBO;
@@ -74,7 +74,7 @@ int main() {
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
                GL_STATIC_DRAW);
 
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
   // note that this is allowd, the call to glVertexAttribPointer registered VBO
@@ -131,7 +131,7 @@ int main() {
 
 // process all input: query GLFW whether relevant keys are pressed/released
 // this frame and react accordingly
-void processInput(GLFWwindow *window) {
+void processInput(GLFWwindow* window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, true);
   }
@@ -139,7 +139,7 @@ void processInput(GLFWwindow *window) {
 
 // glfw: whenever the window size changed (by OS or user resize) this callback
 // function executes
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   // make sure the viewport matches the new window dimensions; note that idth
   // and height will be significantly larger than specified on retina displays.
   glViewport(0, 0, width, height);

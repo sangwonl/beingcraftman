@@ -2,7 +2,7 @@
 #include <iostream>
 
 double f(double x) {
-  return x * x; // y = x^2
+  return x * x;  // y = x^2
 }
 
 double derivative(double x) {

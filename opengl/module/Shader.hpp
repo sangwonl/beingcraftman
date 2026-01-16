@@ -3,18 +3,18 @@
 
 #define GLFW_INCLUDE_NONE
 
+#include <glad/glad.h>
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
 
-#include <glad/glad.h>
-
 class Shader {
-public:
+ public:
   unsigned int ID;
   // constructor generates the shader on the fly
-  Shader(const char *vertexPath, const char *fragmentPath) {
+  Shader(const char* vertexPath, const char* fragmentPath) {
     // 1. retrieve the vertex/fragment source code from filePath
     std::string vertexCode;
     std::string fragmentCode;
@@ -37,12 +37,12 @@ public:
       // convert stream into string
       vertexCode = vShaderStream.str();
       fragmentCode = fShaderStream.str();
-    } catch (std::ifstream::failure &e) {
+    } catch (std::ifstream::failure& e) {
       std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what()
                 << std::endl;
     }
-    const char *vShaderCode = vertexCode.c_str();
-    const char *fShaderCode = fragmentCode.c_str();
+    const char* vShaderCode = vertexCode.c_str();
+    const char* fShaderCode = fragmentCode.c_str();
     // 2. compile shaders
     unsigned int vertex, fragment;
     // vertex shader
@@ -71,19 +71,19 @@ public:
   void use() { glUseProgram(ID); }
 
   // utility uniform functions
-  void setBool(const std::string &name, bool value) const {
+  void setBool(const std::string& name, bool value) const {
     glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
   }
 
-  void setInt(const std::string &name, int value) const {
+  void setInt(const std::string& name, int value) const {
     glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
   }
 
-  void setFloat(const std::string &name, float value) const {
+  void setFloat(const std::string& name, float value) const {
     glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
   }
 
-private:
+ private:
   // utility function for checking shader compilation/linking errors.
   void checkCompileErrors(unsigned int shader, std::string type) {
     int success;
@@ -106,4 +106,4 @@ private:
   }
 };
 
-#endif // SHADER_HPP
+#endif  // SHADER_HPP
