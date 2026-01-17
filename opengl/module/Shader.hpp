@@ -83,6 +83,11 @@ class Shader {
     glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
   }
 
+  void setVec4(const std::string& name, float v0, float v1, float v2,
+               float v3) const {
+    glUniform4f(glGetUniformLocation(ID, name.c_str()), v0, v1, v2, v3);
+  }
+
  private:
   // utility function for checking shader compilation/linking errors.
   void checkCompileErrors(unsigned int shader, std::string type) {
