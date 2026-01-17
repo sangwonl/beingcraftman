@@ -43,7 +43,7 @@ int main() {
   }
 
   // build and compile our shader program
-  Shader ourShader("shaders/shader33.vs", "shaders/shader33.fs");
+  Shader ourShader("shaders/shader.vs", "shaders/shader.fs");
 
   // set up vertex data (andd buffer(s)) and configure vertex attributes
   float vertices[] = {
