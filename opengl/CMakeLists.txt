@@ -1,4 +1,5 @@
 add_subdirectory(external/glfw-3.3-stable)
+add_subdirectory(external/glm-1.0.3)
 
 # GLAD 설정
 set(GLAD_INCLUDE external/glad/include)

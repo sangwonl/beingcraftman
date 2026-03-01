@@ -8,4 +8,4 @@ void main()
 {
     gl_Position = vec4(aPos.xyz, 1.0f);
     ourColor = vec4(aColor, 1.0f);
-};
+}
