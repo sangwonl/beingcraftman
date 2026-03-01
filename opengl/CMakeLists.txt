@@ -15,6 +15,6 @@ foreach(CPP_FILE ${CPP_FILES})
     get_filename_component(EXECUTABLE_NAME ${CPP_FILE} NAME_WE)
     add_executable(${EXECUTABLE_NAME} ${CPP_FILE} ${GLAD_SRC})
     target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GLAD_INCLUDE} ${STB_INCLUDE})
-    target_link_libraries(${EXECUTABLE_NAME} glfw)
+    target_link_libraries(${EXECUTABLE_NAME} glfw glm)
 endforeach()
 
