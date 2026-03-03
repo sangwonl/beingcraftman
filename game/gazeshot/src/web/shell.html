@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GazeShot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: monospace;
+            color: #e0e0e0;
+        }
+        #canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        canvas {
+            border: 2px solid #16213e;
+            border-radius: 4px;
+        }
+        #status { font-size: 14px; opacity: 0.6; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="canvas" width="1280" height="720"
+                oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+        <div id="status">Loading...</div>
+    </div>
+
+    <script>
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            onRuntimeInitialized: function() {
+                document.getElementById('status').textContent = 'Running';
+            }
+        };
+    </script>
+    {{{ SCRIPT }}}
+</body>
+</html>
