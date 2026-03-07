@@ -40,6 +40,19 @@
             "linux": {
                 "MIMode": "gdb"
             }
+        },
+        {
+            "name": "Debug gazeshot_game (macOS)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/game/gazeshot/src/build/game/gazeshot_game",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "build-gazeshot"
         }
     ]
 }

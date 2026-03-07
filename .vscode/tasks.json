@@ -20,6 +20,14 @@
             },
             "problemMatcher": ["$gcc"],
             "detail": "CMake build task"
+        },
+        {
+            "label": "build-gazeshot",
+            "type": "shell",
+            "command": "cmake --build ${workspaceFolder}/game/gazeshot/src/build",
+            "group": "build",
+            "problemMatcher": ["$gcc"],
+            "detail": "Build gazeshot game"
         }
     ]
 }

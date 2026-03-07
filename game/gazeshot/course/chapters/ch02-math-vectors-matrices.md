@@ -431,16 +431,16 @@ Mat4<T> inverse(const Mat4<T>& m) {
          (v[0] * t2 - v[4] * t4 + v[8]  * t5)
     } * invDet;
     result[2] = Vec4<T>{
-         (v[5] * t6  - v[9]  * t7  + v[13] * t8),
-        -(v[1] * t6  - v[9]  * t12 + v[13] * t13),
-         (v[1] * t7  - v[5]  * t12 + v[13] * t14),
-        -(v[1] * t8  - v[5]  * t13 + v[9]  * t14)
+        -(v[5] * t6  - v[9]  * t7  + v[13] * t8),
+         (v[1] * t6  - v[9]  * t12 + v[13] * t13),
+        -(v[1] * t7  - v[5]  * t12 + v[13] * t14),
+         (v[1] * t8  - v[5]  * t13 + v[9]  * t14)
     } * invDet;
     result[3] = Vec4<T>{
-        -(v[5] * t9  - v[9]  * t10 + v[13] * t11),
-         (v[1] * t9  - v[9]  * t15 + v[13] * t16),
-        -(v[1] * t10 - v[5]  * t15 + v[13] * t17),
-         (v[1] * t11 - v[5]  * t16 + v[9]  * t17)
+        -(v[6]  * t9  - v[10] * t10 + v[14] * t11),
+         (v[2]  * t9  - v[10] * t15 + v[14] * t16),
+        -(v[2]  * t10 - v[6]  * t15 + v[14] * t17),
+         (v[2]  * t11 - v[6]  * t16 + v[10] * t17)
     } * invDet;
     return result;
 }
@@ -732,6 +732,9 @@ main.cpp를 수정하여 커스텀 수학으로 삼각형을 회전시킨다.
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <GLES3/gl3.h>
+#elif defined(__APPLE__)
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/gl3.h>
 #else
 #include <SDL3/SDL_opengl.h>
 #endif

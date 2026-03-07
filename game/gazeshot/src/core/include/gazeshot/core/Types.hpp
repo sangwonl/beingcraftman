@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace gazeshot::core {
 
@@ -20,4 +20,4 @@ using f64 = double;
 
 using usize = std::size_t;
 
-} // namespace gazeshot::core
+}  // namespace gazeshot::core
