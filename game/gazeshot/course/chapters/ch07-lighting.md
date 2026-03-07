@@ -240,7 +240,7 @@ float normalMat[9] = {
     normalMat4[1][0], normalMat4[1][1], normalMat4[1][2],
     normalMat4[2][0], normalMat4[2][1], normalMat4[2][2],
 };
-glUniformMatrix3fv(normalLoc, 1, GL_FALSE, normalMat);
+glUniformMatrix3fv(normalLoc, 1, GL_TRUE, normalMat);
 // → 추후 ShaderProgram에 setMat3 추가하여 정리
 ```
 

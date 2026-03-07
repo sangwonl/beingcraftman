@@ -25,7 +25,7 @@
 ## 학습 목표
 
 1. `Vec2`, `Vec3`, `Vec4` 클래스 템플릿을 직접 구현한다
-2. `Mat3`, `Mat4`를 column-major로 구현한다
+2. `Mat3`, `Mat4`를 row-major로 구현한다
 3. `constexpr`로 컴파일 타임 벡터/행렬 연산을 만든다
 4. operator overloading 패턴을 익힌다
 5. doctest로 부동소수점 비교 테스트를 작성한다
@@ -45,18 +45,58 @@ GLM은 훌륭한 라이브러리지만, 직접 만들면:
 
 ### Column-Major vs Row-Major
 
-OpenGL은 **column-major** 순서로 행렬을 메모리에 저장한다:
+행렬을 메모리에 나열하는 방법은 두 가지가 있다:
 
 ```
-수학 표기:                     메모리(column-major):
-┌ m00  m01  m02  m03 ┐        [m00, m10, m20, m30,   ← column 0
-│ m10  m11  m12  m13 │         m01, m11, m21, m31,   ← column 1
-│ m20  m21  m22  m23 │         m02, m12, m22, m32,   ← column 2
-└ m30  m31  m32  m33 ┘         m03, m13, m23, m33]   ← column 3
+수학 표기:
+┌ m00  m01  m02  m03 ┐
+│ m10  m11  m12  m13 │
+│ m20  m21  m22  m23 │
+└ m30  m31  m32  m33 ┘
+
+Column-major (열 우선):                  Row-major (행 우선):
+[m00, m10, m20, m30,  ← column 0       [m00, m01, m02, m03,  ← row 0
+ m01, m11, m21, m31,  ← column 1        m10, m11, m12, m13,  ← row 1
+ m02, m12, m22, m32,  ← column 2        m20, m21, m22, m23,  ← row 2
+ m03, m13, m23, m33]  ← column 3        m30, m31, m32, m33]  ← row 3
 ```
 
-즉, `data[0..3]`이 첫 번째 **열(column)** 이다.
-이것을 잘못 이해하면 변환이 전혀 안 되거나 뒤집혀 보인다.
+**Column-major를 사용하는 진영:**
+- OpenGL / GLSL — GPU에 전달할 때 column-major를 기본으로 기대한다
+- GLM, cglm, Handmade Math — OpenGL 관례를 따르는 수학 라이브러리들
+- Fortran — 역사적으로 column-major의 원조
+
+**Row-major를 사용하는 진영:**
+- DirectX / HLSL — DirectXMath가 row-major
+- Unreal Engine (FMatrix) — DirectX 기반
+- Eigen — 범용 선형대수 라이브러리
+- C/C++ 다차원 배열 — `float m[4][4]`는 row-major
+
+**우리의 선택: Row-major**
+
+코드에서 행렬을 다룰 때의 직관성을 우선했다:
+
+```cpp
+// Row-major: m[row][col] — 수학 표기와 코드가 일치
+// 이동 행렬을 만들면:
+Mat4f m = Mat4f::identity();
+m[0][3] = tx;   // 첫 번째 행, 네 번째 열 — 교과서와 동일
+m[1][3] = ty;
+m[2][3] = tz;
+// 눈에 보이는 그대로:
+// [1  0  0  tx]
+// [0  1  0  ty]
+// [0  0  1  tz]
+// [0  0  0  1 ]
+
+// Column-major: m[col][row] — 머릿속에서 전치해야 함
+m[3] = Vec4f{tx, ty, tz, 1};  // "3번째 열"이 translation
+// 코드만 보면 어디가 행이고 열인지 헷갈린다
+```
+
+OpenGL은 column-major를 기대하지만, `glUniformMatrix4fv`의 `transpose` 파라미터를
+`GL_TRUE`로 설정하면 row-major 데이터를 GPU가 알아서 전치해서 받는다.
+성능 차이는 없다.
 
 ### `constexpr`의 의미
 
@@ -308,141 +348,126 @@ namespace gazeshot::core::math {
 
 template<typename T = f32>
 struct Mat4 {
-    // Column-major: cols[0] = 첫 번째 열
-    Vec4<T> cols[4] = {};
+    // Row-major: rows[0] = 첫 번째 행
+    Vec4<T> rows[4] = {};
 
     // ── 생성자 ──
     constexpr Mat4() = default;
 
     // 대각 행렬 (identity는 Mat4(1.0f))
     constexpr explicit Mat4(T diagonal) {
-        cols[0].x = diagonal;
-        cols[1].y = diagonal;
-        cols[2].z = diagonal;
-        cols[3].w = diagonal;
+        rows[0].x = diagonal;
+        rows[1].y = diagonal;
+        rows[2].z = diagonal;
+        rows[3].w = diagonal;
     }
 
-    // 4개 열 벡터로 구성
-    constexpr Mat4(const Vec4<T>& c0, const Vec4<T>& c1,
-                   const Vec4<T>& c2, const Vec4<T>& c3)
-        : cols{c0, c1, c2, c3} {}
+    // 4개 행 벡터로 구성
+    constexpr Mat4(const Vec4<T>& r0, const Vec4<T>& r1,
+                   const Vec4<T>& r2, const Vec4<T>& r3)
+        : rows{r0, r1, r2, r3} {}
 
-    // ── 열 접근 ──
+    // ── 행 접근: m[row][col] — 수학 표기와 동일 ──
     constexpr Vec4<T>& operator[](usize i) {
         assert(i < 4);
-        return cols[i];
+        return rows[i];
     }
     constexpr const Vec4<T>& operator[](usize i) const {
         assert(i < 4);
-        return cols[i];
+        return rows[i];
     }
 
     // ── 단위 행렬 ──
     static constexpr Mat4 identity() { return Mat4(T(1)); }
 
     // ── OpenGL 전달용 ──
-    constexpr const T* data() const { return cols[0].data(); }
+    constexpr const T* data() const { return rows[0].data(); }
 
     // ── 비교 ──
     constexpr bool operator==(const Mat4&) const = default;
 };
 
-// ── 행렬 × 행렬 ──
+// ── 행렬 × 행렬: result[i][j] = sum_k(a[i][k] * b[k][j]) ──
 template<typename T>
 constexpr Mat4<T> operator*(const Mat4<T>& a, const Mat4<T>& b) {
     Mat4<T> result;
-    for (usize col = 0; col < 4; ++col) {
-        for (usize row = 0; row < 4; ++row) {
+    for (usize row = 0; row < 4; ++row) {
+        for (usize col = 0; col < 4; ++col) {
             T sum = T(0);
             for (usize k = 0; k < 4; ++k) {
-                sum += a[k][row] * b[col][k];
+                sum += a[row][k] * b[k][col];
             }
-            result[col][row] = sum;
+            result[row][col] = sum;
         }
     }
     return result;
 }
 
-// ── 행렬 × 벡터 ──
+// ── 행렬 × 벡터: result[i] = dot(row_i, v) ──
 template<typename T>
 constexpr Vec4<T> operator*(const Mat4<T>& m, const Vec4<T>& v) {
     return {
-        m[0].x * v.x + m[1].x * v.y + m[2].x * v.z + m[3].x * v.w,
-        m[0].y * v.x + m[1].y * v.y + m[2].y * v.z + m[3].y * v.w,
-        m[0].z * v.x + m[1].z * v.y + m[2].z * v.z + m[3].z * v.w,
-        m[0].w * v.x + m[1].w * v.y + m[2].w * v.z + m[3].w * v.w,
+        m[0].x * v.x + m[0].y * v.y + m[0].z * v.z + m[0].w * v.w,
+        m[1].x * v.x + m[1].y * v.y + m[1].z * v.z + m[1].w * v.w,
+        m[2].x * v.x + m[2].y * v.y + m[2].z * v.z + m[2].w * v.w,
+        m[3].x * v.x + m[3].y * v.y + m[3].z * v.z + m[3].w * v.w,
     };
 }
 
 // ── 전치 ──
 template<typename T>
 constexpr Mat4<T> transpose(const Mat4<T>& m) {
-    Mat4<T> r;
-    for (usize i = 0; i < 4; ++i)
-        for (usize j = 0; j < 4; ++j)
-            r[i][j] = m[j][i];
-    return r;
+    return {{m[0].x, m[1].x, m[2].x, m[3].x},
+            {m[0].y, m[1].y, m[2].y, m[3].y},
+            {m[0].z, m[1].z, m[2].z, m[3].z},
+            {m[0].w, m[1].w, m[2].w, m[3].w}};
 }
 
-// ── 역행렬 (코팩터 방식) ──
-// 긴 코드이지만 한 번 작성하면 영원히 쓴다
+// ── 역행렬 (코팩터 방식, m[row][col] 접근) ──
 template<typename T>
 Mat4<T> inverse(const Mat4<T>& m) {
-    const T* v = m.data();
-    // 16개 원소를 v[0]..v[15]로 접근 (column-major)
+    // 상위 2행의 2x2 소행렬식
+    T s0 = m[0][0] * m[1][1] - m[1][0] * m[0][1];
+    T s1 = m[0][0] * m[1][2] - m[1][0] * m[0][2];
+    T s2 = m[0][0] * m[1][3] - m[1][0] * m[0][3];
+    T s3 = m[0][1] * m[1][2] - m[1][1] * m[0][2];
+    T s4 = m[0][1] * m[1][3] - m[1][1] * m[0][3];
+    T s5 = m[0][2] * m[1][3] - m[1][2] * m[0][3];
 
-    T t0  = v[10] * v[15] - v[14] * v[11];
-    T t1  = v[6]  * v[15] - v[14] * v[7];
-    T t2  = v[6]  * v[11] - v[10] * v[7];
-    T t3  = v[2]  * v[15] - v[14] * v[3];
-    T t4  = v[2]  * v[11] - v[10] * v[3];
-    T t5  = v[2]  * v[7]  - v[6]  * v[3];
+    // 하위 2행의 2x2 소행렬식
+    T c5 = m[2][2] * m[3][3] - m[3][2] * m[2][3];
+    T c4 = m[2][1] * m[3][3] - m[3][1] * m[2][3];
+    T c3 = m[2][1] * m[3][2] - m[3][1] * m[2][2];
+    T c2 = m[2][0] * m[3][3] - m[3][0] * m[2][3];
+    T c1 = m[2][0] * m[3][2] - m[3][0] * m[2][2];
+    T c0 = m[2][0] * m[3][1] - m[3][0] * m[2][1];
 
-    T c0  =  (v[5] * t0 - v[9] * t1 + v[13] * t2);
-    T c1  = -(v[1] * t0 - v[9] * t3 + v[13] * t4);
-    T c2  =  (v[1] * t1 - v[5] * t3 + v[13] * t5);
-    T c3  = -(v[1] * t2 - v[5] * t4 + v[9]  * t5);
-
-    T det = v[0] * c0 + v[4] * c1 + v[8] * c2 + v[12] * c3;
+    T det = s0 * c5 - s1 * c4 + s2 * c3 + s3 * c2 - s4 * c1 + s5 * c0;
     assert(std::abs(det) > T(1e-8));
+    T inv = T(1) / det;
 
-    T invDet = T(1) / det;
+    Mat4<T> r;
+    r[0][0] = ( m[1][1] * c5 - m[1][2] * c4 + m[1][3] * c3) * inv;
+    r[0][1] = (-m[0][1] * c5 + m[0][2] * c4 - m[0][3] * c3) * inv;
+    r[0][2] = ( m[3][1] * s5 - m[3][2] * s4 + m[3][3] * s3) * inv;
+    r[0][3] = (-m[2][1] * s5 + m[2][2] * s4 - m[2][3] * s3) * inv;
 
-    T t6  = v[8]  * v[15] - v[12] * v[11];
-    T t7  = v[4]  * v[15] - v[12] * v[7];
-    T t8  = v[4]  * v[11] - v[8]  * v[7];
-    T t9  = v[8]  * v[13] - v[12] * v[9];
-    T t10 = v[4]  * v[13] - v[12] * v[5];
-    T t11 = v[4]  * v[9]  - v[8]  * v[5];
+    r[1][0] = (-m[1][0] * c5 + m[1][2] * c2 - m[1][3] * c1) * inv;
+    r[1][1] = ( m[0][0] * c5 - m[0][2] * c2 + m[0][3] * c1) * inv;
+    r[1][2] = (-m[3][0] * s5 + m[3][2] * s2 - m[3][3] * s1) * inv;
+    r[1][3] = ( m[2][0] * s5 - m[2][2] * s2 + m[2][3] * s1) * inv;
 
-    T t12 = v[0]  * v[15] - v[12] * v[3];
-    T t13 = v[0]  * v[11] - v[8]  * v[3];
-    T t14 = v[0]  * v[7]  - v[4]  * v[3];
-    T t15 = v[0]  * v[13] - v[12] * v[1];
-    T t16 = v[0]  * v[9]  - v[8]  * v[1];
-    T t17 = v[0]  * v[5]  - v[4]  * v[1];
+    r[2][0] = ( m[1][0] * c4 - m[1][1] * c2 + m[1][3] * c0) * inv;
+    r[2][1] = (-m[0][0] * c4 + m[0][1] * c2 - m[0][3] * c0) * inv;
+    r[2][2] = ( m[3][0] * s4 - m[3][1] * s2 + m[3][3] * s0) * inv;
+    r[2][3] = (-m[2][0] * s4 + m[2][1] * s2 - m[2][3] * s0) * inv;
 
-    Mat4<T> result;
-    result[0] = Vec4<T>{c0, c1, c2, c3} * invDet;
-    result[1] = Vec4<T>{
-        -(v[4] * t0 - v[8] * t1 + v[12] * t2),
-         (v[0] * t0 - v[8] * t3 + v[12] * t4),
-        -(v[0] * t1 - v[4] * t3 + v[12] * t5),
-         (v[0] * t2 - v[4] * t4 + v[8]  * t5)
-    } * invDet;
-    result[2] = Vec4<T>{
-        -(v[5] * t6  - v[9]  * t7  + v[13] * t8),
-         (v[1] * t6  - v[9]  * t12 + v[13] * t13),
-        -(v[1] * t7  - v[5]  * t12 + v[13] * t14),
-         (v[1] * t8  - v[5]  * t13 + v[9]  * t14)
-    } * invDet;
-    result[3] = Vec4<T>{
-        -(v[6]  * t9  - v[10] * t10 + v[14] * t11),
-         (v[2]  * t9  - v[10] * t15 + v[14] * t16),
-        -(v[2]  * t10 - v[6]  * t15 + v[14] * t17),
-         (v[2]  * t11 - v[6]  * t16 + v[10] * t17)
-    } * invDet;
-    return result;
+    r[3][0] = (-m[1][0] * c3 + m[1][1] * c1 - m[1][2] * c0) * inv;
+    r[3][1] = ( m[0][0] * c3 - m[0][1] * c1 + m[0][2] * c0) * inv;
+    r[3][2] = (-m[3][0] * s3 + m[3][1] * s1 - m[3][2] * s0) * inv;
+    r[3][3] = ( m[2][0] * s3 - m[2][1] * s1 + m[2][2] * s0) * inv;
+
+    return r;
 }
 
 // ── 별칭 ──
@@ -452,20 +477,21 @@ using Mat4d = Mat4<f64>;
 } // namespace gazeshot::core::math
 ```
 
-**column-major 접근 방식 시각화**:
+**row-major 접근 방식 시각화**:
 
 ```
 Mat4 m = identity();
 
-m[0]  →  첫 번째 열 = {1, 0, 0, 0}
-m[1]  →  두 번째 열 = {0, 1, 0, 0}
-m[2]  →  세 번째 열 = {0, 0, 1, 0}
-m[3]  →  네 번째 열 = {0, 0, 0, 1}
+m[0]  →  첫 번째 행 = {1, 0, 0, 0}
+m[1]  →  두 번째 행 = {0, 1, 0, 0}
+m[2]  →  세 번째 행 = {0, 0, 1, 0}
+m[3]  →  네 번째 행 = {0, 0, 0, 1}
 
-m[3].x, m[3].y, m[3].z  →  이동(translation) 성분!
+m[0][3], m[1][3], m[2][3]  →  이동(translation) 성분!
 ```
 
-이동 행렬에서 translation이 **네 번째 열**에 들어간다는 것이 핵심이다.
+이동 행렬에서 translation이 **각 행의 마지막 열(w 위치)** 에 들어간다.
+수학 교과서의 표기와 완전히 일치하므로 코드를 읽을 때 머릿속 변환이 필요 없다.
 
 ### Step 4: 편의 헤더
 
@@ -636,8 +662,15 @@ TEST_CASE("Mat4 * Vec4") {
 }
 
 TEST_CASE("Mat4 이동 행렬") {
+    // row-major: m[row][col] — 수학 표기 그대로
+    // [1  0  0  tx]
+    // [0  1  0  ty]
+    // [0  0  1  tz]
+    // [0  0  0  1 ]
     auto m = Mat4f::identity();
-    m[3] = Vec4f{5, 10, 15, 1};  // translation 열
+    m[0][3] = 5;
+    m[1][3] = 10;
+    m[2][3] = 15;
 
     Vec4f point{0, 0, 0, 1};     // w=1: 점(이동 영향 받음)
     auto moved = m * point;
@@ -653,37 +686,41 @@ TEST_CASE("Mat4 이동 행렬") {
 
 TEST_CASE("Mat4 inverse") {
     auto m = Mat4f::identity();
-    m[3] = Vec4f{5, 10, 15, 1};
+    m[0][3] = 5;
+    m[1][3] = 10;
+    m[2][3] = 15;
 
     auto inv = inverse(m);
     auto result = m * inv;
 
-    // m * m^(-1) ≈ I
     auto I = Mat4f::identity();
-    for (int c = 0; c < 4; ++c) {
-        for (int r = 0; r < 4; ++r) {
-            CHECK(result[c][r] == doctest::Approx(I[c][r]).epsilon(1e-5));
+    for (int r = 0; r < 4; ++r) {
+        for (int c = 0; c < 4; ++c) {
+            CHECK(result[r][c] == doctest::Approx(I[r][c]).epsilon(1e-5));
         }
     }
 }
 
 TEST_CASE("Mat4 transpose") {
+    // row-major: 각 Vec4가 행
     Mat4f m{
-        Vec4f{1, 5, 9,  13},
-        Vec4f{2, 6, 10, 14},
-        Vec4f{3, 7, 11, 15},
-        Vec4f{4, 8, 12, 16}
+        Vec4f{1, 2, 3, 4},
+        Vec4f{5, 6, 7, 8},
+        Vec4f{9, 10, 11, 12},
+        Vec4f{13, 14, 15, 16}
     };
     auto t = transpose(m);
-    CHECK(t[0] == Vec4f{1, 2, 3, 4});
-    CHECK(t[1] == Vec4f{5, 6, 7, 8});
+    CHECK(t[0] == Vec4f{1, 5, 9, 13});
+    CHECK(t[1] == Vec4f{2, 6, 10, 14});
+    CHECK(t[2] == Vec4f{3, 7, 11, 15});
+    CHECK(t[3] == Vec4f{4, 8, 12, 16});
 }
 
 TEST_CASE("Mat4 data() 메모리 레이아웃") {
     auto m = Mat4f::identity();
     const float* ptr = m.data();
 
-    // column-major: 첫 4개 = 첫 번째 열
+    // row-major: 첫 4개 = 첫 번째 행
     CHECK(ptr[0]  == 1.0f);  // m[0][0]
     CHECK(ptr[1]  == 0.0f);  // m[0][1]
     CHECK(ptr[4]  == 0.0f);  // m[1][0]
@@ -782,8 +819,13 @@ Mat4f rotateZ(float radians) {
     float c = std::cos(radians);
     float s = std::sin(radians);
     Mat4f m = Mat4f::identity();
-    m[0][0] = c;   m[1][0] = -s;
-    m[0][1] = s;   m[1][1] =  c;
+    // row-major: m[row][col] = 수학 표기 그대로
+    // [ c  -s  0  0 ]
+    // [ s   c  0  0 ]
+    // [ 0   0  1  0 ]
+    // [ 0   0  0  1 ]
+    m[0][0] = c;   m[0][1] = -s;
+    m[1][0] = s;   m[1][1] =  c;
     return m;
 }
 
@@ -859,8 +901,9 @@ void oneFrame(void* arg) {
     glUseProgram(app->shaderProgram);
 
     // ── 커스텀 Mat4의 data()로 uniform 전달 ──
+    // GL_TRUE: row-major 데이터를 GPU가 전치해서 받도록 지시
     int loc = glGetUniformLocation(app->shaderProgram, "uTransform");
-    glUniformMatrix4fv(loc, 1, GL_FALSE, transform.data());
+    glUniformMatrix4fv(loc, 1, GL_TRUE, transform.data());
 
     glBindVertexArray(app->vao);
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -888,12 +931,14 @@ int main(int, char*[]) {
 }
 ```
 
-**핵심 순간**: `glUniformMatrix4fv(loc, 1, GL_FALSE, transform.data())`
+**핵심 순간**: `glUniformMatrix4fv(loc, 1, GL_TRUE, transform.data())`
 
-- `GL_FALSE` = "전치하지 마라" → 우리가 이미 column-major로 저장했으므로
-- `transform.data()` = `&cols[0].x` → 16개 float의 시작 주소
+- `GL_TRUE` = "이 데이터는 row-major이니 전치해서 받아라"
+- `transform.data()` = `&rows[0].x` → 16개 float의 시작 주소
 
-이것이 "왜 column-major인가?"의 답이다: OpenGL이 그대로 받아 쓸 수 있다.
+OpenGL은 내부적으로 column-major를 기대하지만, transpose 플래그 하나로 해결된다.
+우리가 row-major를 선택한 이유는 코드의 직관성 때문이다:
+`m[0][1]`이 "0행 1열"이라는 수학적 의미와 정확히 일치한다.
 
 ---
 
@@ -914,7 +959,7 @@ int main(int, char*[]) {
 1. **회전 삼각형 GIF**: Desktop에서 캡처
 2. **코드 하이라이트**: `rotateZ()` 함수 — "이 5줄이 GLM::rotate()를 대체한다"
 3. **테스트 출력**: doctest 결과 스크린샷 (30+ 케이스 PASS)
-4. **메모리 레이아웃 다이어그램**: column-major 그림 포함
+4. **메모리 레이아웃 다이어그램**: row-major vs column-major 비교 그림 포함
 5. **브라우저 데모**: WASM 빌드를 블로그에 임베딩하면 독자가 직접 돌려볼 수 있다
 
 ---

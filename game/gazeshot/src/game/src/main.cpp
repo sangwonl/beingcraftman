@@ -52,10 +52,13 @@ Mat4f rotateZ(float radians) {
   float c = std::cos(radians);
   float s = std::sin(radians);
   Mat4f m = Mat4f::identity();
-  m[0][0] = c;
-  m[0][1] = s;
-  m[1][0] = -s;
-  m[1][1] = c;
+  // row-major: m[row][col] = 수학 표기 그대로
+  // [ c  -s  0  0 ]
+  // [ s   c  0  0 ]
+  // [ 0   0  1  0 ]
+  // [ 0   0  0  1 ]
+  m[0][0] = c;  m[0][1] = -s;
+  m[1][0] = s;  m[1][1] = c;
   return m;
 }
 
@@ -127,7 +130,7 @@ void oneFrame(void* arg) {
   glUseProgram(app->shaderProgram);
 
   int loc = glGetUniformLocation(app->shaderProgram, "uTransform");
-  glUniformMatrix4fv(loc, 1, GL_FALSE, transform.data());
+  glUniformMatrix4fv(loc, 1, GL_TRUE, transform.data());
 
   glBindVertexArray(app->vao);
   glDrawArrays(GL_TRIANGLES, 0, 3);

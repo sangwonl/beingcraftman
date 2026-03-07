@@ -651,7 +651,7 @@ void render(Ch18App& app, f32 alpha) {
         };
         glUniformMatrix3fv(
             app.shader->uniformLocation("uNormalMatrix"),
-            1, GL_FALSE, nm);
+            1, GL_TRUE, nm);
 
         obj.mesh->draw(*app.renderer);
     }
