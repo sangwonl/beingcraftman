@@ -48,6 +48,30 @@ void main() {
 )";
 #endif
 
+// clang-format off
+float vertices[] = {
+    // front (z = +0.5)
+    -0.5f, -0.5f,  0.5f,  // 0: front bottom-left
+     0.5f, -0.5f,  0.5f,  // 1: front bottom-right
+     0.5f,  0.5f,  0.5f,  // 2: front top-right
+    -0.5f,  0.5f,  0.5f,  // 3: front top-left
+    // back (z = -0.5)
+    -0.5f, -0.5f, -0.5f,  // 4: back bottom-left
+     0.5f, -0.5f, -0.5f,  // 5: back bottom-right
+     0.5f,  0.5f, -0.5f,  // 6: back top-right
+    -0.5f,  0.5f, -0.5f,  // 7: back top-left
+};
+// clang-format on
+
+unsigned int indices[] = {
+    0, 1, 2, 2, 3, 0,  // front
+    4, 5, 6, 6, 7, 4,  // back
+    4, 0, 3, 3, 7, 4,  // left
+    1, 5, 6, 6, 2, 1,  // right
+    3, 2, 6, 6, 7, 3,  // top
+    4, 5, 1, 1, 0, 4,  // bottom
+};
+
 Mat4f rotateZ(float radians) {
   float c = std::cos(radians);
   float s = std::sin(radians);
@@ -57,8 +81,10 @@ Mat4f rotateZ(float radians) {
   // [ s   c  0  0 ]
   // [ 0   0  1  0 ]
   // [ 0   0  0  1 ]
-  m[0][0] = c;  m[0][1] = -s;
-  m[1][0] = s;  m[1][1] = c;
+  m[0][0] = c;
+  m[0][1] = -s;
+  m[1][0] = s;
+  m[1][1] = c;
   return m;
 }
 
@@ -95,18 +121,19 @@ void initGL(App& app) {
   glDeleteShader(vs);
   glDeleteShader(fs);
 
-  float vertices[] = {
-      0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f,
-  };
-
-  unsigned int vbo;
+  unsigned int vbo, ebo;
   glGenVertexArrays(1, &app.vao);
   glGenBuffers(1, &vbo);
+  glGenBuffers(1, &ebo);
   glBindVertexArray(app.vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+               GL_STATIC_DRAW);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
   glEnableVertexAttribArray(0);
+  glEnable(GL_DEPTH_TEST);
 }
 
 void oneFrame(void* arg) {
@@ -120,20 +147,35 @@ void oneFrame(void* arg) {
     return;
   }
 
+  using namespace gazeshot::core::math;
+  using namespace gazeshot::core::math::literals;
+
   app->time += 1.0f / 60.0f;
 
-  Mat4f transform = rotateZ(app->time);
+  Mat4f model = rotateY(app->time) * rotateX(app->time * 0.7f);
 
-  glClearColor(0.12f, 0.12f, 0.15f, 1.0f);  // teal color
-  glClear(GL_COLOR_BUFFER_BIT);
+  Mat4f view = lookAt(Vec3f{0, 0, 3},  // 카메라 위치
+                      Vec3f{0, 0, 0},  // 바라보는 곳
+                      Vec3f{0, 1, 0}   // 월드 업 벡터
+  );
+
+  float aspect = static_cast<float>(app->window.width()) /
+                 static_cast<float>(app->window.height());
+
+  Mat4f proj = perspective(45.0_deg, aspect, 0.1f, 100.0f);
+
+  Mat4f mvp = proj * view * model;
 
   glUseProgram(app->shaderProgram);
 
   int loc = glGetUniformLocation(app->shaderProgram, "uTransform");
-  glUniformMatrix4fv(loc, 1, GL_TRUE, transform.data());
+  glUniformMatrix4fv(loc, 1, GL_TRUE, mvp.data());
+
+  glClearColor(0.12f, 0.12f, 0.15f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glBindVertexArray(app->vao);
-  glDrawArrays(GL_TRIANGLES, 0, 3);
+  glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 
   app->window.swapBuffers();
 }

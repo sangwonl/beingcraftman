@@ -505,22 +505,35 @@ TEST_CASE("user-defined literal _deg") {
 // Ch.02의 구조를 유지하면서 다음을 변경:
 
 // 삼각형 대신 큐브 정점
+// 앞면 4개(v0~v3) → 뒷면 4개(v4~v7) 순서로 배치해야 indices와 맞다
 float vertices[] = {
-    // 앞면                // 뒷면
-    -0.5f, -0.5f,  0.5f,   -0.5f, -0.5f, -0.5f,
-     0.5f, -0.5f,  0.5f,    0.5f, -0.5f, -0.5f,
-     0.5f,  0.5f,  0.5f,    0.5f,  0.5f, -0.5f,
-    -0.5f,  0.5f,  0.5f,   -0.5f,  0.5f, -0.5f,
+    // 앞면 (z = +0.5)
+    -0.5f, -0.5f,  0.5f,  // 0: front bottom-left
+     0.5f, -0.5f,  0.5f,  // 1: front bottom-right
+     0.5f,  0.5f,  0.5f,  // 2: front top-right
+    -0.5f,  0.5f,  0.5f,  // 3: front top-left
+    // 뒷면 (z = -0.5)
+    -0.5f, -0.5f, -0.5f,  // 4: back bottom-left
+     0.5f, -0.5f, -0.5f,  // 5: back bottom-right
+     0.5f,  0.5f, -0.5f,  // 6: back top-right
+    -0.5f,  0.5f, -0.5f,  // 7: back top-left
 };
 
 unsigned int indices[] = {
-    // 앞면             뒷면
-    0,1,2, 2,3,0,      4,5,6, 6,7,4,
-    // 좌면             우면
-    4,0,3, 3,7,4,      1,5,6, 6,2,1,
-    // 상면             하면
-    3,2,6, 6,7,3,      4,5,1, 1,0,4,
+    0, 1, 2, 2, 3, 0,  // 앞면
+    4, 5, 6, 6, 7, 4,  // 뒷면
+    4, 0, 3, 3, 7, 4,  // 좌면
+    1, 5, 6, 6, 2, 1,  // 우면
+    3, 2, 6, 6, 7, 3,  // 상면
+    4, 5, 1, 1, 0, 4,  // 하면
 };
+
+// initGL 안에서 EBO도 생성해야 한다:
+// unsigned int vbo, ebo;
+// glGenBuffers(1, &ebo);
+// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+// glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+// → EBO 없이 glDrawElements에 raw 포인터를 넘기면 core profile에서 동작하지 않는다
 
 // oneFrame 안에서:
 void oneFrame(void* arg) {
@@ -553,7 +566,7 @@ void oneFrame(void* arg) {
     int loc = glGetUniformLocation(app->shaderProgram, "uTransform");
     glUniformMatrix4fv(loc, 1, GL_TRUE, mvp.data());
 
-    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.12f, 0.12f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glBindVertexArray(app->vao);
