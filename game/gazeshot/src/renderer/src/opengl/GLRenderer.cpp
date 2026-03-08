@@ -10,11 +10,13 @@
 #include <gazeshot/renderer/Renderer.hpp>
 #include <string>
 
+using namespace gazeshot::core;
+
 namespace gazeshot::renderer {
 
 class GLVertexBuffer : public VertexBuffer {
  public:
-  GLVertexBuffer(const void* data, core::u32 size, BufferUsage usage) {
+  GLVertexBuffer(const void* data, u32 size, BufferUsage usage) {
     glGenBuffers(1, &id_);
     glBindBuffer(GL_ARRAY_BUFFER, id_);
     GLenum glUsage = GL_STATIC_DRAW;
@@ -48,23 +50,23 @@ class GLVertexBuffer : public VertexBuffer {
 
   void bind() const override { glBindBuffer(GL_ARRAY_BUFFER, id_); }
   void unbind() const override { glBindBuffer(GL_ARRAY_BUFFER, 0); }
-  void updateData(const void* data, core::u32 size) override {
+  void updateData(const void* data, u32 size) override {
     glBindBuffer(GL_ARRAY_BUFFER, id_);
     glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
   }
 
  private:
-  core::u32 id_ = 0;
+  u32 id_ = 0;
 };
 
 class GLIndexBuffer : public IndexBuffer {
  public:
-  GLIndexBuffer(const core::u32* data, core::u32 count) : count_(count) {
+  GLIndexBuffer(const u32* data, u32 count) : count_(count) {
     glGenBuffers(1, &id_);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
     glBufferData(
-        GL_ELEMENT_ARRAY_BUFFER, count * sizeof(core::u32), data,
-        GL_STATIC_DRAW);
+        GL_ELEMENT_ARRAY_BUFFER, count * sizeof(u32), data, GL_STATIC_DRAW
+    );
   }
   ~GLIndexBuffer() override {
     if (id_) {
@@ -91,11 +93,11 @@ class GLIndexBuffer : public IndexBuffer {
 
   void bind() const override { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_); }
   void unbind() const override { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
-  core::u32 count() const override { return count_; }
+  u32 count() const override { return count_; }
 
  private:
-  core::u32 id_ = 0;
-  core::u32 count_ = 0;
+  u32 id_ = 0;
+  u32 count_ = 0;
 };
 
 class GLShaderProgram : public ShaderProgram {
@@ -134,10 +136,10 @@ class GLShaderProgram : public ShaderProgram {
   void bind() const override { glUseProgram(id_); }
   void unbind() const override { glUseProgram(0); }
 
-  void setInt(std::string_view name, core::i32 value) override {
+  void setInt(std::string_view name, i32 value) override {
     glUniform1i(loc(name), value);
   }
-  void setFloat(std::string_view name, core::f32 value) override {
+  void setFloat(std::string_view name, f32 value) override {
     glUniform1f(loc(name), value);
   }
   void setVec3(std::string_view name, const Vec3f& value) override {
@@ -151,8 +153,8 @@ class GLShaderProgram : public ShaderProgram {
   }
 
  private:
-  core::u32 id_ = 0;
-  core::i32 loc(std::string_view name) const {
+  u32 id_ = 0;
+  i32 loc(std::string_view name) const {
     return glGetUniformLocation(id_, std::string(name).c_str());
   }
 
@@ -167,8 +169,8 @@ class GLShaderProgram : public ShaderProgram {
     return result;
   }
 
-  static core::u32 compile(GLenum type, const std::string& src) {
-    core::u32 shader = glCreateShader(type);
+  static u32 compile(GLenum type, const std::string& src) {
+    u32 shader = glCreateShader(type);
     const char* ptr = src.c_str();
     glShaderSource(shader, 1, &ptr, nullptr);
     glCompileShader(shader);
@@ -190,47 +192,54 @@ class GLRenderer : public Renderer {
       glDisable(GL_DEPTH_TEST);
     }
   }
-  void setViewport(
-      core::u32 x, core::u32 y, core::u32 w, core::u32 h) override {
+  void setViewport(u32 x, u32 y, u32 w, u32 h) override {
     glViewport(x, y, w, h);
   }
 
   std::unique_ptr<VertexBuffer> createVertexBuffer(
-      const void* data, core::u32 size, BufferUsage usage) override {
+      const void* data, u32 size, BufferUsage usage
+  ) override {
     return std::make_unique<GLVertexBuffer>(data, size, usage);
   }
 
   std::unique_ptr<IndexBuffer> createIndexBuffer(
-      const core::u32* data, core::u32 count) override {
+      const u32* data, u32 count
+  ) override {
     return std::make_unique<GLIndexBuffer>(data, count);
   }
 
   std::unique_ptr<ShaderProgram> createShaderProgram(
-      std::string_view vertexSrc, std::string_view fragmentSrc) override {
+      std::string_view vertexSrc, std::string_view fragmentSrc
+  ) override {
     return std::make_unique<GLShaderProgram>(vertexSrc, fragmentSrc);
   }
 
-  void drawIndexed(core::u32 indexCount) override {
+  void drawIndexed(u32 indexCount) override {
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
   }
-  void drawArrays(core::u32 vertexCount) override {
+  void drawArrays(u32 vertexCount) override {
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);
   }
 
-  core::u32 createVertexArray() override {
-    core::u32 vao;
+  u32 createVertexArray() override {
+    u32 vao;
     glGenVertexArrays(1, &vao);
     return vao;
   }
-  void bindVertexArray(core::u32 vao) override { glBindVertexArray(vao); }
+  void bindVertexArray(u32 vao) override { glBindVertexArray(vao); }
   void setVertexLayout(const VertexLayout& layout) override {
-    for (core::u32 i = 0; i < layout.attribs().size(); ++i) {
+    for (u32 i = 0; i < layout.attribs().size(); ++i) {
       const auto& attr = layout.attribs()[i];
       glVertexAttribPointer(
-          i, VertexLayout::attribComponentCount(attr.type), GL_FLOAT,
-          attr.normalized ? GL_TRUE : GL_FALSE, layout.stride(),
+          i,
+          VertexLayout::attribComponentCount(attr.type),
+          GL_FLOAT,
+          attr.normalized ? GL_TRUE : GL_FALSE,
+          layout.stride(),
           reinterpret_cast<const void*>(
-              static_cast<uintptr_t>(layout.offsets()[i])));
+              static_cast<uintptr_t>(layout.offsets()[i])
+          )
+      );
       glEnableVertexAttribArray(i);
     }
   }

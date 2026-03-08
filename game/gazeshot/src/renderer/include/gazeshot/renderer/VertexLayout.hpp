@@ -4,9 +4,11 @@
 #include <string>
 #include <vector>
 
+using namespace gazeshot::core;
+
 namespace gazeshot::renderer {
 
-enum class AttribType : core::u8 {
+enum class AttribType : u8 {
   Float1,
   Float2,
   Float3,
@@ -31,10 +33,10 @@ class VertexLayout {
   }
 
   const std::vector<VertexAttrib>& attribs() const { return attribs_; }
-  const std::vector<core::u32>& offsets() const { return offsets_; }
-  core::u32 stride() const { return stride_; }
+  const std::vector<u32>& offsets() const { return offsets_; }
+  u32 stride() const { return stride_; }
 
-  static core::u32 attribSize(AttribType type) {
+  static u32 attribSize(AttribType type) {
     switch (type) {
       case AttribType::Float1:
         return 4;
@@ -56,7 +58,7 @@ class VertexLayout {
     return 0;  // Should never reach here
   }
 
-  static core::u32 attribComponentCount(AttribType type) {
+  static u32 attribComponentCount(AttribType type) {
     switch (type) {
       case AttribType::Float1:
       case AttribType::Int1:
@@ -85,8 +87,8 @@ class VertexLayout {
   }
 
   std::vector<VertexAttrib> attribs_;
-  std::vector<core::u32> offsets_;
-  core::u32 stride_ = 0;
+  std::vector<u32> offsets_;
+  u32 stride_ = 0;
 };
 
 }  // namespace gazeshot::renderer
