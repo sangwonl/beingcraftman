@@ -120,7 +120,7 @@ template <typename T>
   m[1][3] = -(top + bottom) / (top - bottom);
   m[2][3] = -(far + near) / (far - near);
   m[3][3] = T(1);
-  return 0;
+  return m;
 }
 
 template <typename T>

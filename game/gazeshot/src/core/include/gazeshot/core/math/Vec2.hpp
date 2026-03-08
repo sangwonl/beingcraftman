@@ -32,15 +32,15 @@ struct Vec2 {
     y -= rhs.y;
     return *this;
   }
-  constexpr Vec2& operator*=(const Vec2& rhs) {
-    x -= rhs.x;
-    y -= rhs.y;
+  constexpr Vec2& operator*=(T scalar) {
+    x *= scalar;
+    y *= scalar;
     return *this;
   }
-  constexpr Vec2& operator/=(const Vec2& rhs) {
-    assert(rhs.x != 0 && rhs.y != 0);
-    x /= rhs.x;
-    y /= rhs.y;
+  constexpr Vec2& operator/=(T scalar) {
+    assert(scalar != T(0));
+    x /= scalar;
+    y /= scalar;
     return *this;
   }
   constexpr Vec2 operator-() const { return {-x, -y}; }
@@ -61,7 +61,7 @@ constexpr Vec2<T> operator-(Vec2<T> a, const Vec2<T>& b) {
 }
 
 template <typename T>
-constexpr Vec2<T> operator*(T scalar, const Vec2<T>& v) {
+constexpr Vec2<T> operator*(T scalar, Vec2<T> v) {
   return v *= scalar;
 }
 

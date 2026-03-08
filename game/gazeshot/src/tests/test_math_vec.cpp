@@ -85,6 +85,42 @@ TEST_CASE("Vec3 lerp") {
   CHECK(mid == Vec3f{5, 10, 15});
 }
 
+// ── Vec2 ──
+
+TEST_CASE("Vec2 스칼라 곱셈") {
+  Vec2f v{3, 4};
+  CHECK(v * 2.0f == Vec2f{6, 8});
+  CHECK(2.0f * v == Vec2f{6, 8});
+}
+
+TEST_CASE("Vec2 스칼라 나눗셈") {
+  Vec2f v{6, 8};
+  CHECK(v / 2.0f == Vec2f{3, 4});
+}
+
+TEST_CASE("Vec2 length & normalize") {
+  Vec2f v{3, 4};
+  CHECK(length(v) == doctest::Approx(5.0f));
+
+  Vec2f n = normalize(v);
+  CHECK(length(n) == doctest::Approx(1.0f));
+  CHECK(n.x == doctest::Approx(0.6f));
+  CHECK(n.y == doctest::Approx(0.8f));
+}
+
+// ── Vec4 ──
+
+TEST_CASE("Vec4 length & normalize") {
+  Vec4f v{1, 2, 2, 0};
+  CHECK(lengthSquared(v) == doctest::Approx(9.0f));
+  CHECK(length(v) == doctest::Approx(3.0f));
+
+  Vec4f n = normalize(v);
+  CHECK(length(n) == doctest::Approx(1.0f));
+}
+
+// ── Vec3 constexpr ──
+
 TEST_CASE("Vec3 constexpr 검증") {
   constexpr Vec3f a{1, 2, 3};
   constexpr Vec3f b{4, 5, 6};

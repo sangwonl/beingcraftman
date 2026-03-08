@@ -98,13 +98,13 @@ constexpr Vec4<T> cross(const Vec4<T>& a, const Vec4<T>& b) {
 }
 
 template <typename T>
-constexpr T lengthSquaired(const Vec4<T>& v) {
+constexpr T lengthSquared(const Vec4<T>& v) {
   return dot(v, v);
 }
 
 template <typename T>
 T length(const Vec4<T>& v) {
-  return std::sqrt(lengthSquaired(v));
+  return std::sqrt(lengthSquared(v));
 }
 
 template <typename T>

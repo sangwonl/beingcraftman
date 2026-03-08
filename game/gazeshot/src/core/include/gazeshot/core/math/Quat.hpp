@@ -74,7 +74,7 @@ Quat<T> slerp(const Quat<T>& a, const Quat<T>& b, T t) {
   // 최단 경로 보장
   Quat<T> b2 = b;
   if (cosHalf < T(0)) {
-    b2 = {-b.w, -b.x, -b.y - b.z};
+    b2 = {-b.w, -b.x, -b.y, -b.z};
     cosHalf = -cosHalf;
   }
 
