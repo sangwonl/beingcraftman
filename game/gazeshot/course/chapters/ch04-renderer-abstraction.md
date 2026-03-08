@@ -37,11 +37,13 @@
 
 현재 `main.cpp`에 `glCreateShader`, `glBufferData` 등이 직접 들어있다.
 문제:
+
 - 게임 코드가 OpenGL에 묶인다
 - WebGL 2.0과 Desktop OpenGL의 미묘한 차이를 매번 `#ifdef`로 처리해야 한다
 - GPU 리소스 해제를 빠뜨리기 쉽다
 
 추상화 후:
+
 ```cpp
 // Before (OpenGL 직접)
 unsigned int vbo;
@@ -58,11 +60,13 @@ auto vbo = renderer->createVertexBuffer(data, size, BufferUsage::Static);
 ### RAII와 GPU 리소스
 
 **RAII (Resource Acquisition Is Initialization)**:
+
 - 생성자에서 리소스 획득 (glGenBuffers)
 - 소멸자에서 리소스 해제 (glDeleteBuffers)
 - 스코프를 벗어나면 자동 정리
 
 **이동 시맨틱**:
+
 - GPU 핸들(ID)은 복사 불가 → 이중 해제 위험
 - 이동만 허용 → 핸들 소유권 이전
 
@@ -320,6 +324,7 @@ auto vbo = renderer->createVertexBuffer(data, size, BufferUsage::Static);
 ```
 
 `std::unique_ptr`이 소유권을 가지고 있으므로:
+
 - 복사 불가 → 이중 해제 방지
 - 스코프 종료 시 자동 해제 → 리소스 누수 방지
 - `std::move`로 소유권 이전 가능
@@ -331,6 +336,9 @@ auto vbo = renderer->createVertexBuffer(data, size, BufferUsage::Static);
 
 #ifdef __EMSCRIPTEN__
 #include <GLES3/gl3.h>
+#elif defined(__APPLE__)
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/gl3.h>
 #else
 #include <SDL3/SDL_opengl.h>
 #endif
@@ -367,15 +375,119 @@ public:
         glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
     }
 private:
-    unsigned int id_ = 0;
+    core::u32 id_ = 0;
 };
 
-// GLIndexBuffer, GLShaderProgram 등도 같은 패턴...
+class GLIndexBuffer : public IndexBuffer {
+public:
+    GLIndexBuffer(const core::u32* data, core::u32 count) : count_(count) {
+        glGenBuffers(1, &id_);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     count * sizeof(core::u32), data, GL_STATIC_DRAW);
+    }
+    ~GLIndexBuffer() override { if (id_) glDeleteBuffers(1, &id_); }
+
+    GLIndexBuffer(GLIndexBuffer&& o) noexcept
+        : id_(std::exchange(o.id_, 0)), count_(std::exchange(o.count_, 0)) {}
+    GLIndexBuffer& operator=(GLIndexBuffer&& o) noexcept {
+        if (this != &o) {
+            if (id_) glDeleteBuffers(1, &id_);
+            id_ = std::exchange(o.id_, 0);
+            count_ = std::exchange(o.count_, 0);
+        }
+        return *this;
+    }
+
+    GLIndexBuffer(const GLIndexBuffer&) = delete;
+    GLIndexBuffer& operator=(const GLIndexBuffer&) = delete;
+
+    void bind() const override { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id_); }
+    void unbind() const override { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
+    core::u32 count() const override { return count_; }
+private:
+    core::u32 id_ = 0;
+    core::u32 count_ = 0;
+};
+
+class GLShaderProgram : public ShaderProgram {
+public:
+    GLShaderProgram(std::string_view vertSrc, std::string_view fragSrc) {
+        auto vs = compile(GL_VERTEX_SHADER, processSource(vertSrc));
+        auto fs = compile(GL_FRAGMENT_SHADER, processSource(fragSrc));
+        id_ = glCreateProgram();
+        glAttachShader(id_, vs);
+        glAttachShader(id_, fs);
+        glLinkProgram(id_);
+        glDeleteShader(vs);
+        glDeleteShader(fs);
+    }
+    ~GLShaderProgram() override { if (id_) glDeleteProgram(id_); }
+
+    GLShaderProgram(GLShaderProgram&& o) noexcept
+        : id_(std::exchange(o.id_, 0)) {}
+    GLShaderProgram& operator=(GLShaderProgram&& o) noexcept {
+        if (this != &o) {
+            if (id_) glDeleteProgram(id_);
+            id_ = std::exchange(o.id_, 0);
+        }
+        return *this;
+    }
+
+    GLShaderProgram(const GLShaderProgram&) = delete;
+    GLShaderProgram& operator=(const GLShaderProgram&) = delete;
+
+    void bind() const override { glUseProgram(id_); }
+    void unbind() const override { glUseProgram(0); }
+
+    void setInt(std::string_view name, core::i32 value) override {
+        glUniform1i(loc(name), value);
+    }
+    void setFloat(std::string_view name, core::f32 value) override {
+        glUniform1f(loc(name), value);
+    }
+    void setVec3(std::string_view name, const core::math::Vec3f& v) override {
+        glUniform3f(loc(name), v.x, v.y, v.z);
+    }
+    void setVec4(std::string_view name, const core::math::Vec4f& v) override {
+        glUniform4f(loc(name), v.x, v.y, v.z, v.w);
+    }
+    void setMat4(std::string_view name, const core::math::Mat4f& m) override {
+        glUniformMatrix4fv(loc(name), 1, GL_TRUE, m.data());
+    }
+
+private:
+    core::u32 id_ = 0;
+
+    core::i32 loc(std::string_view name) const {
+        return glGetUniformLocation(id_, std::string(name).c_str());
+    }
+
+    static std::string processSource(std::string_view src) {
+        std::string result;
+#ifdef __EMSCRIPTEN__
+        result = "#version 300 es\nprecision mediump float;\n";
+#else
+        result = "#version 330 core\n";
+#endif
+        result += src;
+        return result;
+    }
+
+    static core::u32 compile(GLenum type, const std::string& src) {
+        core::u32 shader = glCreateShader(type);
+        const char* ptr = src.c_str();
+        glShaderSource(shader, 1, &ptr, nullptr);
+        glCompileShader(shader);
+        return shader;
+    }
+};
 
 class GLRenderer : public Renderer {
 public:
     void init() override {
-        // GL 상태 초기 설정
+        // 현재는 비어있다 — depth test 등은 게임 코드에서 명시적으로 호출.
+        // 이후 챕터에서 blending, face culling 등 기본 GL 상태를 여기서 세팅한다.
     }
     void clear(const core::math::Vec4f& color) override {
         glClearColor(color.x, color.y, color.z, color.w);
@@ -385,7 +497,7 @@ public:
         if (enabled) glEnable(GL_DEPTH_TEST);
         else glDisable(GL_DEPTH_TEST);
     }
-    void setViewport(core::i32 x, core::i32 y, core::i32 w, core::i32 h) override {
+    void setViewport(core::u32 x, core::u32 y, core::u32 w, core::u32 h) override {
         glViewport(x, y, w, h);
     }
 
@@ -394,7 +506,15 @@ public:
         return std::make_unique<GLVertexBuffer>(data, size, usage);
     }
 
-    // ... (다른 create* 함수들)
+    std::unique_ptr<IndexBuffer> createIndexBuffer(
+        const core::u32* data, core::u32 count) override {
+        return std::make_unique<GLIndexBuffer>(data, count);
+    }
+
+    std::unique_ptr<ShaderProgram> createShaderProgram(
+        std::string_view vertexSrc, std::string_view fragmentSrc) override {
+        return std::make_unique<GLShaderProgram>(vertexSrc, fragmentSrc);
+    }
 
     void drawIndexed(core::u32 indexCount) override {
         glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
@@ -404,7 +524,7 @@ public:
     }
 
     core::u32 createVertexArray() override {
-        unsigned int vao;
+        core::u32 vao = 0;
         glGenVertexArrays(1, &vao);
         return vao;
     }
@@ -437,32 +557,49 @@ std::unique_ptr<Renderer> createRenderer() {
 } // namespace gazeshot::renderer
 ```
 
-### Step 4: GLSL 버전 자동 전환
+### Step 4: CMake 변경
 
-```cpp
-// GLShaderProgram 생성자 내부:
+renderer가 이제 OpenGL 소스 코드를 가지므로, INTERFACE → STATIC 라이브러리로 변경한다.
+OpenGL 링크도 game에서 renderer로 옮긴다:
 
-std::string processShaderSource(std::string_view src) {
-    std::string result;
-#ifdef __EMSCRIPTEN__
-    result = "#version 300 es\nprecision mediump float;\n";
-#else
-    result = "#version 330 core\n";
-#endif
-    result += src;
-    return result;
-}
+```cmake
+# renderer/CMakeLists.txt
 
-// 사용:
-// 셰이더를 버전 없이 작성하면 자동으로 붙여준다
-const char* vertSrc = R"(
-layout(location = 0) in vec3 aPos;
-uniform mat4 uMVP;
-void main() { gl_Position = uMVP * vec4(aPos, 1.0); }
-)";
+add_library(gazeshot_renderer STATIC
+    src/opengl/GLRenderer.cpp
+)
+
+target_include_directories(gazeshot_renderer PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(gazeshot_renderer
+    PUBLIC gazeshot_core
+    PRIVATE SDL3::Headers
+)
+
+if (NOT EMSCRIPTEN)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(gazeshot_renderer PRIVATE OpenGL::GL)
+endif()
+```
+
+```cmake
+# game/CMakeLists.txt — OpenGL 직접 링크 제거
+# (renderer가 OpenGL을 내부적으로 링크하므로 game은 몰라도 됨)
+
+target_link_libraries(gazeshot_game PRIVATE
+    gazeshot_platform
+    gazeshot_engine
+    SDL3::Headers
+)
+# find_package(OpenGL) 제거됨!
 ```
 
 ### Step 5: Game 코드 변환 (Before / After)
+
+위 `GLShaderProgram::processSource()`가 GLSL 버전을 자동으로 붙여주므로,
+게임 코드에서는 `#version` 없이 셰이더를 작성하면 된다:
 
 ```cpp
 // game/src/main.cpp  (Ch.04 — OpenGL 호출 제거)
@@ -477,8 +614,8 @@ using namespace core::math::literals;
 
 const char* VERT_SRC = R"(
 layout(location = 0) in vec3 aPos;
-uniform mat4 uMVP;
-void main() { gl_Position = uMVP * vec4(aPos, 1.0); }
+uniform mat4 uTransform;
+void main() { gl_Position = uTransform * vec4(aPos, 1.0); }
 )";
 
 const char* FRAG_SRC = R"(
@@ -538,7 +675,7 @@ void oneFrame(void* arg) {
     Mat4f mvp = perspective(45.0_deg, aspect, 0.1f, 100.0f) * view * model;
 
     app->shader->bind();
-    app->shader->setMat4("uMVP", mvp);
+    app->shader->setMat4("uTransform", mvp);
     app->renderer->bindVertexArray(app->vao);
     app->renderer->drawIndexed(36);
 
@@ -547,6 +684,7 @@ void oneFrame(void* arg) {
 ```
 
 **핵심 변화**:
+
 - `#include <SDL3/SDL_opengl.h>` 사라짐
 - `glClearColor`, `glDrawElements` 등 직접 호출 사라짐
 - GPU 리소스가 `unique_ptr`로 관리 → 소멸자에서 자동 해제
@@ -556,12 +694,12 @@ void oneFrame(void* arg) {
 
 ## 4. 검증 체크리스트
 
-| 항목 | 확인 방법 |
-|------|----------|
-| 동일한 큐브 | Ch.03과 같은 회전 큐브가 보인다 |
-| gl* 호출 없음 | main.cpp에서 `gl` 검색 시 0건 |
-| WASM 동작 | 브라우저에서도 동일 |
-| 리소스 해제 | 종료 시 GL 에러 없음 |
+| 항목             | 확인 방법                              |
+| ---------------- | -------------------------------------- |
+| 동일한 큐브      | Ch.03과 같은 회전 큐브가 보인다        |
+| gl\* 호출 없음   | main.cpp에서 `gl` 검색 시 0건          |
+| WASM 동작        | 브라우저에서도 동일                    |
+| 리소스 해제      | 종료 시 GL 에러 없음                   |
 | 셰이더 자동 버전 | GLSL에 `#version` 작성하지 않아도 동작 |
 
 ---

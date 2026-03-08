@@ -547,7 +547,7 @@ void render(App& app, core::f32 alpha) {
     Mat4f mvp = perspective(45.0_deg, aspect, 0.1f, 100.0f) * view * model;
 
     app.shader->bind();
-    app.shader->setMat4("uMVP", mvp);
+    app.shader->setMat4("uTransform", mvp);
     app.renderer->bindVertexArray(app.vao);
     app.renderer->drawIndexed(36);
 

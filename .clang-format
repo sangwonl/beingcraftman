@@ -1,2 +1,6 @@
 ---
 BasedOnStyle: Google
+
+# AllowAllParametersOfDeclarationOnNextLine: true
+AlignAfterOpenBracket: AlwaysBreak
+# BinPackParameters: false

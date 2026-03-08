@@ -618,6 +618,9 @@ void oneFrame(void* arg) {
     // WASM:    Emscripten이 WebGL 함수를 제공
 #ifdef __EMSCRIPTEN__
     #include <GLES3/gl3.h>
+#elif defined(__APPLE__)
+    #define GL_SILENCE_DEPRECATION
+    #include <OpenGL/gl3.h>
 #else
     // Desktop에서는 SDL의 GL 함수 사용을 위해 헤더 필요
     // Ch.04에서 GLAD로 교체 예정
@@ -667,8 +670,11 @@ int main(int /*argc*/, char* /*argv*/[]) {
 #include <gazeshot/platform/Window.hpp>
 
 #ifdef __EMSCRIPTEN__
-#include <emscripten.h>
 #include <GLES3/gl3.h>
+#include <emscripten.h>
+#elif defined(__APPLE__)
+#define GL_SILENCE_DEPRECATION
+#include <OpenGL/gl3.h>
 #else
 #include <SDL3/SDL_opengl.h>
 #endif

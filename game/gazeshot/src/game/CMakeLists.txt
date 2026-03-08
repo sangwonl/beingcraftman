@@ -4,14 +4,10 @@ add_executable(gazeshot_game
 
 target_link_libraries(gazeshot_game PRIVATE
 	gazeshot_platform
-    gazeshot_engine
+	gazeshot_engine
 	SDL3::Headers
 )
 
-if (NOT EMSCRIPTEN)
-	find_package(OpenGL REQUIRED)
-	target_link_libraries(gazeshot_game PRIVATE OpenGL::GL)
-endif()
 if (EMSCRIPTEN)
 	set_target_properties(gazeshot_game PROPERTIES
 		SUFFIX ".html"

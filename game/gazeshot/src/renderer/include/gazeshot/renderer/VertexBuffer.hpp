@@ -1,0 +1,17 @@
+#pragma once
+
+#include <gazeshot/core/Types.hpp>
+
+namespace gazeshot::renderer {
+
+enum class BufferUsage : core::u8 { Static, Dynamic, Stream };
+
+class VertexBuffer {
+ public:
+  virtual ~VertexBuffer() = default;
+  virtual void bind() const = 0;
+  virtual void unbind() const = 0;
+  virtual void updateData(const void* data, core::u32 size) = 0;
+};
+
+}  // namespace gazeshot::renderer
