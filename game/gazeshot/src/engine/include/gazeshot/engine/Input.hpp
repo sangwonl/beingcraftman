@@ -7,31 +7,28 @@
 #include <gazeshot/core/math/Vec2.hpp>
 #include <vector>
 
-using namespace gazeshot::core;
-using namespace gazeshot::core::math;
-
 namespace gazeshot::engine {
 
 class Input {
  public:
-  bool isKeyPressed(i32 scancode) const;
-  bool isKeyHeld(i32 scancode) const;
-  bool isKeyReleased(i32 scancode) const;
+  bool isKeyPressed(core::i32 scancode) const;
+  bool isKeyHeld(core::i32 scancode) const;
+  bool isKeyReleased(core::i32 scancode) const;
 
-  Vec2f mousePosition() const { return mousePos_; }
-  Vec2f mouseDelta() const { return mouseDelta_; }
-  bool isMouseButtonHeld(MouseButton button) const;
+  core::math::Vec2f mousePosition() const { return mousePos_; }
+  core::math::Vec2f mouseDelta() const { return mouseDelta_; }
+  bool isMouseButtonHeld(core::MouseButton button) const;
 
-  void processEvent(const Event& event);
+  void processEvent(const core::Event& event);
   void endFrame();  // 프레임 끝에 previous 업데이트
 
-  using EventHandler = std::function<void(const Event&)>;
+  using EventHandler = std::function<void(const core::Event&)>;
   void addHandler(EventHandler handler) {
     handlers_.push_back(std::move(handler));
   }
 
  private:
-  static constexpr usize MAX_KEYS = 512;
+  static constexpr core::usize MAX_KEYS = 512;
 
   struct KeyState {
     bool current = false;
@@ -42,8 +39,8 @@ class Input {
 
   std::array<KeyState, MAX_KEYS> keys_{};
   std::array<bool, 3> mouseButtons_{};
-  Vec2f mousePos_{};
-  Vec2f mouseDelta_{};
+  core::math::Vec2f mousePos_{};
+  core::math::Vec2f mouseDelta_{};
   std::vector<EventHandler> handlers_;
 };
 

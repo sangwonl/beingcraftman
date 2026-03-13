@@ -2,6 +2,8 @@
 #include <gazeshot/core/math/Math.hpp>
 #include <gazeshot/engine/GameClock.hpp>
 #include <gazeshot/engine/Input.hpp>
+#include <gazeshot/engine/Mesh.hpp>
+#include <gazeshot/engine/MeshGen.hpp>
 #include <gazeshot/platform/Window.hpp>
 #include <gazeshot/renderer/Renderer.hpp>
 
@@ -17,7 +19,6 @@
 
 #include <SDL3/SDL_scancode.h>
 
-#include <cmath>
 #include <cstdio>
 
 using namespace gazeshot;
@@ -27,33 +28,24 @@ using namespace gazeshot::core::math::literals;
 
 const char* VERT_SRC = R"(
 layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
 uniform mat4 uTransform;
+out vec3 vNormal;
+
 void main() {
   gl_Position = uTransform * vec4(aPos, 1.0);
+  vNormal = aNormal;
 }
 )";
 const char* FRAG_SRC = R"(
+in vec3 vNormal;
 out vec4 FragColor;
 void main() {
-  FragColor = vec4(0.95, 0.55, 0.15, 1.0);
+  // 법선을 색으로: (-1,1) → (0,1)
+  vec3 color = abs(vNormal);
+  FragColor = vec4(color, 1.0);
 }
 )";
-
-Mat4f rotateZ(float radians) {
-  float c = std::cos(radians);
-  float s = std::sin(radians);
-  Mat4f m = Mat4f::identity();
-  // row-major: m[row][col] = 수학 표기 그대로
-  // [ c  -s  0  0 ]
-  // [ s   c  0  0 ]
-  // [ 0   0  1  0 ]
-  // [ 0   0  0  1 ]
-  m[0][0] = c;
-  m[0][1] = -s;
-  m[1][0] = s;
-  m[1][1] = c;
-  return m;
-}
 
 struct App {
   platform::Window window;
@@ -66,8 +58,10 @@ struct App {
   engine::Input input;
   engine::GameClock clock;
 
-  Quatf rotation{};        // 현재 회전 (보간됨), identity = {1, 0, 0, 0}
-  Quatf targetRotation{};  // 목표 회전
+  std::array<engine::Mesh, 4> meshes;
+
+  Quatf rotation{};         // 현재 회전 (보간됨), identity = {1, 0, 0, 0}
+  Quatf targetRotation{};   // 목표 회전
   Vec3f position{0, 0, 0};  // 모델 위치
 
   Vec4f clearColor{0.12f, 0.12f, 0.15f, 1.0f};
@@ -76,66 +70,29 @@ struct App {
   bool isDragging = false;
 };
 
-unsigned int compileShader(unsigned int type, const char* src) {
-  unsigned int shader = glCreateShader(type);
-  glShaderSource(shader, 1, &src, nullptr);
-  glCompileShader(shader);
-
-  int success;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    char log[512];
-    glGetShaderInfoLog(shader, 512, nullptr, log);
-    std::fprintf(stderr, "Shader compilation failed: %s\n", log);
-  }
-
-  return shader;
-}
-
 void init(App& app) {
   app.renderer = renderer::createRenderer();
   app.renderer->init();
   app.renderer->setDepthTest(true);
+  app.renderer->setCullFace(true);
+
+  app.meshes[0] = engine::MeshGen::box(1, 1, 1);
+  app.meshes[1] = engine::MeshGen::sphere(0.6f, 32, 16);
+  app.meshes[2] = engine::MeshGen::cylinder(0.4f, 1.2f, 32);
+  app.meshes[3] = engine::MeshGen::plane(1.5f, 1.5f, 4);
+
+  for (auto& mesh : app.meshes) {
+    mesh.upload(*app.renderer);
+  }
 
   app.shader = app.renderer->createShaderProgram(VERT_SRC, FRAG_SRC);
-
-  // clang-format off
-  f32 vertices[] = {
-    // front (z = +0.5)
-    -0.5f, -0.5f,  0.5f,  // 0: front bottom-left
-     0.5f, -0.5f,  0.5f,  // 1: front bottom-right
-     0.5f,  0.5f,  0.5f,  // 2: front top-right
-    -0.5f,  0.5f,  0.5f,  // 3: front top-left
-    // back (z = -0.5)
-    -0.5f, -0.5f, -0.5f,  // 4: back bottom-left
-     0.5f, -0.5f, -0.5f,  // 5: back bottom-right
-     0.5f,  0.5f, -0.5f,  // 6: back top-right
-    -0.5f,  0.5f, -0.5f,  // 7: back top-left
-  };
-  // clang-format on
-  u32 indices[] = {
-      0, 1, 2, 2, 3, 0,  // front
-      4, 5, 6, 6, 7, 4,  // back
-      4, 0, 3, 3, 7, 4,  // left
-      1, 5, 6, 6, 2, 1,  // right
-      3, 2, 6, 6, 7, 3,  // top
-      4, 5, 1, 1, 0, 4,  // bottom
-  };
-
-  app.vao = app.renderer->createVertexArray();
-  app.renderer->bindVertexArray(app.vao);
-  app.vbo = app.renderer->createVertexBuffer(
-      vertices, sizeof(vertices), renderer::BufferUsage::Static
-  );
-  app.ibo = app.renderer->createIndexBuffer(indices, 36);
-  app.renderer->setVertexLayout({{"aPos", renderer::AttribType::Float3}});
 }
 
 // 입력 처리 - 프레임마다 1번 호출
 void handleInput(App& app) {
   // R 키: 리셋
   if (app.input.isKeyPressed(SDL_SCANCODE_R)) {
-    app.targetRotation = Quatf{};  // identity
+    app.targetRotation = Quatf{};   // identity
     app.position = Vec3f{0, 0, 0};  // 위치도 리셋
   }
 
@@ -191,24 +148,24 @@ void render(App& app, f32 alpha) {
   app.renderer->clear(app.clearColor);
 
   // Translation matrix 생성
-  Mat4f translation = Mat4f::identity();
-  translation[0][3] = app.position.x;
-  translation[1][3] = app.position.y;
-  translation[2][3] = app.position.z;
-
-  // Model matrix = Translation * Rotation
+  Mat4f translation = translate(app.position);
+  ;
   Mat4f rotation = app.rotation.toMat4();  // Quaternion → Matrix
-  Mat4f model = translation * rotation;
 
-  Mat4f view = lookAt(Vec3f{0, 0, 3}, Vec3f{0, 0, 0}, Vec3f{0, 1, 0});
   f32 aspect = static_cast<f32>(app.window.width()) /
                static_cast<f32>(app.window.height());
-  Mat4f mvp = perspective(45.0_deg, aspect, 0.1f, 100.0f) * view * model;
+  Mat4f view = lookAt(Vec3f{0, 0, 5}, Vec3f{0, 0, 0}, Vec3f{0, 1, 0});
+  Mat4f proj = perspective(45.0_deg, aspect, 0.1f, 100.0f);
+
+  f32 offsets[] = {-3.0f, -1.0f, 1.0f, 3.0f};
 
   app.shader->bind();
-  app.shader->setMat4("uTransform", mvp);
-  app.renderer->bindVertexArray(app.vao);
-  app.renderer->drawIndexed(36);
+  for (i32 i = 0; i < 4; ++i) {
+    Mat4f model = translation * translate(Vec3f{offsets[i], 0, 0}) * rotation;
+    Mat4f mvp = proj * view * model;
+    app.shader->setMat4("uTransform", mvp);
+    app.meshes[i].draw(*app.renderer);
+  }
 
   app.window.swapBuffers();
 }

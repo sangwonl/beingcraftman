@@ -101,7 +101,7 @@ renderer/
 
 ```cpp
 VertexLayout layout = {
-    { "aPosition", AttribType::Float3 },
+    { "aPos",      AttribType::Float3 },
     { "aNormal",   AttribType::Float3 },
     { "aTexCoord", AttribType::Float2 },
 };

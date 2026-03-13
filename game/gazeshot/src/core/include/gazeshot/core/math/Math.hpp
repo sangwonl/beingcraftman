@@ -8,10 +8,8 @@
 #include <gazeshot/core/math/Vec3.hpp>
 #include <gazeshot/core/math/Vec4.hpp>
 
-using namespace gazeshot::core::math;
-
-static_assert(sizeof(Vec2f) == 8, "Vec2f should be 8 bytes (2 floats)");
-static_assert(sizeof(Vec3f) == 12, "Vec3f should be 12 bytes (3 floats)");
-static_assert(sizeof(Vec4f) == 16, "Vec4f should be 16 bytes (4 floats)");
-static_assert(sizeof(Mat4f) == 64, "Mat4f should be 64 bytes (16 floats)");
-static_assert(sizeof(Quatf) == 16, "Quatf should be 16 bytes (4 floats)");
+static_assert(sizeof(gazeshot::core::math::Vec2f) == 8, "Vec2f should be 8 bytes (2 floats)");
+static_assert(sizeof(gazeshot::core::math::Vec3f) == 12, "Vec3f should be 12 bytes (3 floats)");
+static_assert(sizeof(gazeshot::core::math::Vec4f) == 16, "Vec4f should be 16 bytes (4 floats)");
+static_assert(sizeof(gazeshot::core::math::Mat4f) == 64, "Mat4f should be 64 bytes (16 floats)");
+static_assert(sizeof(gazeshot::core::math::Quatf) == 16, "Quatf should be 16 bytes (4 floats)");

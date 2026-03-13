@@ -11,6 +11,7 @@
 #include <string>
 
 using namespace gazeshot::core;
+using namespace gazeshot::core::math;
 
 namespace gazeshot::renderer {
 
@@ -227,19 +228,38 @@ class GLRenderer : public Renderer {
     return vao;
   }
   void bindVertexArray(u32 vao) override { glBindVertexArray(vao); }
+  void deleteVertexArray(u32 vao) override { glDeleteVertexArrays(1, &vao); }
+  void setCullFace(bool enabled) override {
+    if (enabled) {
+      glEnable(GL_CULL_FACE);
+    } else {
+      glDisable(GL_CULL_FACE);
+    }
+  }
   void setVertexLayout(const VertexLayout& layout) override {
     for (u32 i = 0; i < layout.attribs().size(); ++i) {
       const auto& attr = layout.attribs()[i];
-      glVertexAttribPointer(
-          i,
-          VertexLayout::attribComponentCount(attr.type),
-          GL_FLOAT,
-          attr.normalized ? GL_TRUE : GL_FALSE,
-          layout.stride(),
-          reinterpret_cast<const void*>(
-              static_cast<uintptr_t>(layout.offsets()[i])
-          )
+      auto components = VertexLayout::attribComponentCount(attr.type);
+      auto offset = reinterpret_cast<const void*>(
+          static_cast<uintptr_t>(layout.offsets()[i])
       );
+
+      bool isInt = attr.type == AttribType::Int1 ||
+                   attr.type == AttribType::Int2 ||
+                   attr.type == AttribType::Int3 ||
+                   attr.type == AttribType::Int4;
+
+      if (isInt) {
+        glVertexAttribIPointer(
+            i, components, GL_INT, layout.stride(), offset
+        );
+      } else {
+        glVertexAttribPointer(
+            i, components, GL_FLOAT,
+            attr.normalized ? GL_TRUE : GL_FALSE,
+            layout.stride(), offset
+        );
+      }
       glEnableVertexAttribArray(i);
     }
   }

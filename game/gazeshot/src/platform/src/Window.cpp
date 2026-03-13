@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+using namespace gazeshot::core;
+
 namespace gazeshot::platform {
 
 Window::Window(const WindowConfig& config)

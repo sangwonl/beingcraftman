@@ -35,11 +35,13 @@
 ### 왜 프로시저럴 메시인가?
 
 Ch.03~05에서 큐브 정점을 하드코딩했다. 문제:
+
 - 구나 실린더는 수십~수백 개의 정점이 필요
 - 해상도(세그먼트 수)를 런타임에 조절할 수 없다
 - 법선, 텍스처 좌표를 수동으로 계산해야 한다
 
 프로시저럴 생성:
+
 ```cpp
 auto sphere = MeshGen::sphere(1.0f, 32, 16);  // 반지름, 세그먼트, 링
 // → 528개 정점, 2880개 인덱스 자동 생성
@@ -78,6 +80,40 @@ Vertex normal: 정점마다 하나          → smooth shading (부드러운 모
 
 glEnable(GL_CULL_FACE) → 뒷면을 렌더링하지 않음 (성능 최적화)
 ```
+
+### 양면 렌더링 (Double-Sided)
+
+평면(Plane)이나 나뭇잎처럼 뒷면도 보여야 하는 오브젝트가 있다.
+
+**방법 1: 해당 오브젝트만 cull face 끄기 (실용적)**
+
+```cpp
+app.renderer->setCullFace(false);   // 양면 렌더링
+planeMesh.draw(*app.renderer);
+app.renderer->setCullFace(true);    // 다시 켜기
+```
+
+간단하고 정점 수가 늘지 않는다. 나뭇잎, 종이, 천 같은 얇은 오브젝트에 적합.
+
+**방법 2: 양면 인덱스 생성 (정석)**
+
+같은 위치에 법선이 반전된 정점을 별도로 추가하고, 와인딩을 뒤집은 삼각형을 넣는다:
+
+```cpp
+// 앞면 정점 (normal = +Y)
+verts.push_back({pos, {0, 1, 0}, uv});
+// 뒷면 정점 (normal = -Y)
+verts.push_back({pos, {0, -1, 0}, uv});
+
+// 앞면 삼각형 (CCW)
+idxs.insert(idxs.end(), {tl, bl, tr, tr, bl, br});
+// 뒷면 삼각형 (반대 와인딩)
+idxs.insert(idxs.end(), {tl', tr', bl', bl', tr', br'});
+```
+
+조명이 있을 때 앞/뒤 면에 각각 올바른 법선이 적용된다. 정점 수와 인덱스가 2배.
+
+일반적으로 **방법 1**이면 충분하고, 라이팅에서 양면 법선이 중요해지면 방법 2를 쓴다.
 
 ---
 
@@ -168,7 +204,7 @@ public:
         );
 
         r.setVertexLayout({
-            {"aPosition", renderer::AttribType::Float3},
+            {"aPos",      renderer::AttribType::Float3},
             {"aNormal",   renderer::AttribType::Float3},
             {"aTexCoord", renderer::AttribType::Float2},
         });
@@ -205,6 +241,7 @@ std::span<const core::Vertex> vertices() const { return vertices_; }
 ```
 
 `std::span`은 "소유하지 않는 연속 메모리 뷰"다:
+
 - `std::vector`의 데이터를 참조하지만 복사하지 않는다
 - 크기 정보를 함께 가지고 있다 (포인터 + 크기)
 - 배열, vector, C 배열 어디서든 만들 수 있다
@@ -232,7 +269,6 @@ processVertices(arr);        // C 배열 → span 자동 변환
 #include <gazeshot/engine/Mesh.hpp>
 #include <gazeshot/core/math/Math.hpp>
 #include <cmath>
-#include <numbers>   // C++20: std::numbers::pi_v
 
 namespace gazeshot::engine {
 
@@ -343,7 +379,7 @@ inline Mesh box(core::f32 w = 1, core::f32 h = 1, core::f32 d = 1) {
 inline Mesh sphere(core::f32 radius, core::u32 segments = 32, core::u32 rings = 16) {
     using namespace core;
     using namespace core::math;
-    constexpr f32 PI = std::numbers::pi_v<f32>;
+    // core::math::PI는 Transform.hpp에 정의됨
 
     std::vector<Vertex> verts;
     std::vector<u32> idxs;
@@ -376,8 +412,8 @@ inline Mesh sphere(core::f32 radius, core::u32 segments = 32, core::u32 rings = 
             u32 curr = ring * (segments + 1) + seg;
             u32 next = curr + segments + 1;
 
-            idxs.insert(idxs.end(), {curr, next, curr + 1});
-            idxs.insert(idxs.end(), {curr + 1, next, next + 1});
+            idxs.insert(idxs.end(), {curr, curr + 1, next});
+            idxs.insert(idxs.end(), {curr + 1, next + 1, next});
         }
     }
 
@@ -394,7 +430,7 @@ inline Mesh cylinder(core::f32 radius, core::f32 height,
                      core::u32 segments = 32) {
     using namespace core;
     using namespace core::math;
-    constexpr f32 PI = std::numbers::pi_v<f32>;
+    // core::math::PI는 Transform.hpp에 정의됨
 
     std::vector<Vertex> verts;
     std::vector<u32> idxs;
@@ -416,8 +452,8 @@ inline Mesh cylinder(core::f32 radius, core::f32 height,
     for (u32 i = 0; i < segments; ++i) {
         u32 top = i * 2;
         u32 bot = top + 1;
-        idxs.insert(idxs.end(), {top, bot, top + 2});
-        idxs.insert(idxs.end(), {bot, bot + 2, top + 2});
+        idxs.insert(idxs.end(), {top, top + 2, bot});
+        idxs.insert(idxs.end(), {bot, top + 2, bot + 2});
     }
 
     // ── 상면 (cap) ──
@@ -434,7 +470,7 @@ inline Mesh cylinder(core::f32 radius, core::f32 height,
         });
     }
     for (u32 i = 0; i < segments; ++i) {
-        idxs.insert(idxs.end(), {topCenter, topCenter + i + 1, topCenter + i + 2});
+        idxs.insert(idxs.end(), {topCenter, topCenter + i + 2, topCenter + i + 1});
     }
 
     // ── 하면 (cap) ──
@@ -451,7 +487,7 @@ inline Mesh cylinder(core::f32 radius, core::f32 height,
         });
     }
     for (u32 i = 0; i < segments; ++i) {
-        idxs.insert(idxs.end(), {botCenter, botCenter + i + 2, botCenter + i + 1});
+        idxs.insert(idxs.end(), {botCenter, botCenter + i + 1, botCenter + i + 2});
     }
 
     return Mesh(std::move(verts), std::move(idxs));
@@ -471,6 +507,7 @@ verts.emplace_back(pos, n, uv); // 제자리 생성 (복사 없음)
 ```
 
 `reserve` vs 그냥 `push_back`:
+
 - reserve 없이: push_back할 때마다 capacity 초과 시 재할당 + 전체 복사
 - reserve 후: 재할당 없이 바로 삽입 → 구 528개 정점에서 큰 차이
 
@@ -489,13 +526,13 @@ for (auto& [position, normal, texCoord] : mesh.vertices()) {
 
 ```glsl
 // vertex shader
-layout(location = 0) in vec3 aPosition;
+layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
-uniform mat4 uMVP;
+uniform mat4 uTransform;
 out vec3 vNormal;
 
 void main() {
-    gl_Position = uMVP * vec4(aPosition, 1.0);
+    gl_Position = uTransform * vec4(aPos, 1.0);
     vNormal = aNormal;
 }
 
@@ -511,49 +548,85 @@ void main() {
 ```
 
 법선 시각화 의미:
+
 - **빨강 강한 면** = X축 방향 (좌/우)
 - **초록 강한 면** = Y축 방향 (상/하)
 - **파랑 강한 면** = Z축 방향 (앞/뒤)
 
 ### Step 5: 데모 코드
 
-```cpp
-// game/src/main.cpp (Ch.06)
+Ch.05의 App 구조체에서 `vbo`/`ibo`/`vao`를 `Mesh` 배열로 교체한다.
+기존 입력 처리(마우스 회전, 방향키 이동, Space 색상 변경)는 그대로 유지한다.
 
+```cpp
+// game/src/main.cpp (Ch.06) — App 구조체 변경
+
+struct App {
+    platform::Window window;
+    std::unique_ptr<renderer::Renderer> renderer;
+    std::unique_ptr<renderer::ShaderProgram> shader;
+
+    engine::Input input;
+    engine::GameClock clock;
+
+    // Ch.06: Mesh 배열로 교체 (기존 vbo/ibo/vao 제거)
+    std::array<engine::Mesh, 4> meshes;
+
+    Quatf rotation{};
+    Quatf targetRotation{};
+    Vec3f position{0, 0, 0};
+
+    Vec4f clearColor{0.12f, 0.12f, 0.15f, 1.0f};
+    i32 colorIndex = 0;
+
+    bool isDragging = false;
+};
+```
+
+init과 render — `handleInput()`, `update()`는 Ch.05와 동일하므로 변경된 부분만:
+
+```cpp
 void init(App& app) {
-    // 4가지 도형 생성
-    app.meshes[0] = MeshGen::box(1, 1, 1);
-    app.meshes[1] = MeshGen::sphere(0.6f, 32, 16);
-    app.meshes[2] = MeshGen::cylinder(0.4f, 1.2f, 32);
-    app.meshes[3] = MeshGen::plane(1.5f, 1.5f, 4);
+    app.renderer = renderer::createRenderer();
+    app.renderer->init();
+    app.renderer->setDepthTest(true);
+    app.renderer->setCullFace(true);     // ← Ch.06 추가
+
+    // Ch.06: 4가지 도형 생성 (기존 하드코딩 큐브 제거)
+    app.meshes[0] = engine::MeshGen::box(1, 1, 1);
+    app.meshes[1] = engine::MeshGen::sphere(0.6f, 32, 16);
+    app.meshes[2] = engine::MeshGen::cylinder(0.4f, 1.2f, 32);
+    app.meshes[3] = engine::MeshGen::plane(1.5f, 1.5f, 4);
 
     for (auto& mesh : app.meshes) {
         mesh.upload(*app.renderer);
     }
 
-    // 법선 시각화 셰이더
-    app.shader = app.renderer->createShaderProgram(normalVertSrc, normalFragSrc);
+    // 법선 시각화 셰이더 (aPos + aNormal)
+    app.shader = app.renderer->createShaderProgram(VERT_SRC, FRAG_SRC);
 }
 
-void render(App& app, core::f32 alpha) {
-    app.renderer->clear({0.1f, 0.1f, 0.12f, 1.0f});
-    app.renderer->setDepthTest(true);
+void render(App& app, f32 alpha) {
+    app.renderer->clear(app.clearColor);
 
-    float aspect = (float)app.window.width() / (float)app.window.height();
+    // Ch.05와 동일: position으로 전체 이동
+    Mat4f translation = translate(app.position);
+    Mat4f rotation = app.rotation.toMat4();
+
+    f32 aspect = static_cast<f32>(app.window.width())
+               / static_cast<f32>(app.window.height());
     Mat4f view = lookAt(Vec3f{0, 2, 6}, Vec3f{0, 0, 0}, Vec3f{0, 1, 0});
     Mat4f proj = perspective(45.0_deg, aspect, 0.1f, 100.0f);
 
-    // 4개 도형을 X축으로 나란히 배치
-    float positions[] = {-3.0f, -1.0f, 1.0f, 3.0f};
+    // Ch.06: 4개 도형을 X축으로 나란히 배치
+    f32 offsets[] = {-3.0f, -1.0f, 1.0f, 3.0f};
 
-    for (int i = 0; i < 4; ++i) {
-        Mat4f model = translate(Vec3f{positions[i], 0, 0})
-                    * rotateY(app.cubeRotation.y)
-                    * rotateX(app.cubeRotation.x);
+    app.shader->bind();
+    for (i32 i = 0; i < 4; ++i) {
+        Mat4f model = translation * translate(Vec3f{offsets[i], 0, 0}) * rotation;
         Mat4f mvp = proj * view * model;
 
-        app.shader->bind();
-        app.shader->setMat4("uMVP", mvp);
+        app.shader->setMat4("uTransform", mvp);
         app.meshes[i].draw(*app.renderer);
     }
 
@@ -565,14 +638,14 @@ void render(App& app, core::f32 alpha) {
 
 ## 4. 검증 체크리스트
 
-| 항목 | 확인 방법 |
-|------|----------|
-| 4가지 도형 | 박스, 구, 실린더, 평면이 모두 보임 |
-| 법선 색상 | 박스의 각 면이 R/G/B로 구분됨 |
-| 구 부드러움 | 구의 색이 부드럽게 그래디언트됨 |
-| 실린더 캡 | 상하면이 닫혀 있음 |
-| 와인딩 | face culling 켜도 구멍 없음 |
-| WASM 동작 | 브라우저에서 동일 |
+| 항목        | 확인 방법                          |
+| ----------- | ---------------------------------- |
+| 4가지 도형  | 박스, 구, 실린더, 평면이 모두 보임 |
+| 법선 색상   | 박스의 각 면이 R/G/B로 구분됨      |
+| 구 부드러움 | 구의 색이 부드럽게 그래디언트됨    |
+| 실린더 캡   | 상하면이 닫혀 있음                 |
+| 와인딩      | face culling 켜도 구멍 없음        |
+| WASM 동작   | 브라우저에서 동일                  |
 
 ---
 

@@ -1,5 +1,8 @@
 #include <gazeshot/engine/Input.hpp>
 
+using namespace gazeshot::core;
+using namespace gazeshot::core::math;
+
 namespace gazeshot::engine {
 
 bool Input::isKeyPressed(i32 scancode) const {

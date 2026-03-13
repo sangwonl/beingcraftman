@@ -123,14 +123,17 @@ template <typename T>
   return m;
 }
 
+inline constexpr f32 PI = 3.14159265358979323846f;
+inline constexpr f64 PI_D = 3.14159265358979323846;
+
 template <typename T>
 constexpr T radians(T degrees) {
-  return degrees * T(M_PI) / T(180);
+  return degrees * T(PI_D) / T(180);
 }
 
 template <typename T>
 constexpr T degrees(T radians) {
-  return radians * T(180) / T(M_PI);
+  return radians * T(180) / T(PI_D);
 }
 
 }  // namespace gazeshot::core::math
