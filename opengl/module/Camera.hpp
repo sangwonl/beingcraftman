@@ -32,9 +32,10 @@ class Camera {
   float MouseSensitivity;
   float Zoom;
 
-  Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
-         glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW,
-         float pitch = PITCH)
+  Camera(
+      glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
+      glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), float yaw = YAW,
+      float pitch = PITCH)
       : Front(glm::vec3(0.0f, 0.0f, -1.0f)),
         MovementSpeed(SPEED),
         MouseSensitivity(SENSITIVITY),
@@ -46,8 +47,9 @@ class Camera {
     updateCameraVectors();
   }
 
-  Camera(float posX, float posY, float posZ, float upX, float upY, float upZ,
-         float yaw, float pitch) {
+  Camera(
+      float posX, float posY, float posZ, float upX, float upY, float upZ,
+      float yaw, float pitch) {
     Position = glm::vec3(posX, posY, posZ);
     WorldUp = glm::vec3(upX, upY, upZ);
     Yaw = yaw;
@@ -67,8 +69,8 @@ class Camera {
     if (direction == RIGHT) Position += Right * velocity;
   }
 
-  void ProcessMouseMovement(float xoffset, float yoffset,
-                            GLboolean constrainPitch = true) {
+  void ProcessMouseMovement(
+      float xoffset, float yoffset, GLboolean constrainPitch = true) {
     yoffset *= MouseSensitivity;
     yoffset *= MouseSensitivity;
 

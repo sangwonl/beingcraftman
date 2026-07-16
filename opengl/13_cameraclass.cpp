@@ -71,8 +71,8 @@ int main() {
   glEnable(GL_DEPTH_TEST);
 
   // build and compile our shader program
-  Shader ourShader("shaders/shader-coordinate-sys.vs",
-                   "shaders/shader-coordinate-sys.fs");
+  Shader ourShader(
+      "shaders/shader-coordinate-sys.vs", "shaders/shader-coordinate-sys.fs");
 
   // set up vertex data (and buffers) and configure vertex attributes
   float vertices[] = {
@@ -120,8 +120,8 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
   // texture coord attribute
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                        (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(
+      1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
   // load and create a texture
@@ -139,8 +139,9 @@ int main() {
   unsigned char* data =
       stbi_load("resources/container.jpg", &width, &height, &nrChannels, 0);
   if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, data);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE,
+        data);
     glGenerateMipmap(GL_TEXTURE_2D);
   } else {
     std::cout << "Failed to load texture" << std::endl;
@@ -157,8 +158,9 @@ int main() {
   data =
       stbi_load("resources/awesomeface.png", &width, &height, &nrChannels, 0);
   if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, data);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+        data);
     glGenerateMipmap(GL_TEXTURE_2D);
   } else {
     std::cout << "Failed to load texture" << std::endl;
@@ -182,8 +184,9 @@ int main() {
 
     // render
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT |
-            GL_DEPTH_BUFFER_BIT);  // also clear the depth buffer now!
+    glClear(
+        GL_COLOR_BUFFER_BIT |
+        GL_DEPTH_BUFFER_BIT);  // also clear the depth buffer now!
 
     // bind textures on corresponding texture units
     glActiveTexture(GL_TEXTURE0);
@@ -195,9 +198,9 @@ int main() {
     ourShader.use();
 
     // projection matrix
-    glm::mat4 projection =
-        glm::perspective(glm::radians(camera.Zoom),
-                         (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(
+        glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f,
+        100.0f);
     ourShader.setMat4("projection", projection);
 
     // view matrix
