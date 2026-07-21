@@ -1,5 +1,18 @@
+cmake_minimum_required(VERSION 3.22)
+project(beingcraftman_opengl LANGUAGES C CXX)
+
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(external/glfw-3.3-stable)
 add_subdirectory(external/glm-1.0.3)
+add_subdirectory(external/assimp)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(assimp PRIVATE -Wno-unsafe-buffer-usage)
+endif()
 
 # GLAD 설정
 set(GLAD_INCLUDE external/glad/include)
@@ -15,6 +28,5 @@ foreach(CPP_FILE ${CPP_FILES})
     get_filename_component(EXECUTABLE_NAME ${CPP_FILE} NAME_WE)
     add_executable(${EXECUTABLE_NAME} ${CPP_FILE} ${GLAD_SRC})
     target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GLAD_INCLUDE} ${STB_INCLUDE})
-    target_link_libraries(${EXECUTABLE_NAME} glfw glm)
+    target_link_libraries(${EXECUTABLE_NAME} PRIVATE glfw glm::glm assimp::assimp)
 endforeach()
-

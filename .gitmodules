@@ -1,0 +1,3 @@
+[submodule "opengl/external/assimp"]
+	path = opengl/external/assimp
+	url = https://github.com/assimp/assimp.git
