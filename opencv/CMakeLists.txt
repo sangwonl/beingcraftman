@@ -33,11 +33,9 @@ foreach(CPP_FILE ${CPP_FILES})
     add_executable(${EXECUTABLE_NAME} ${CPP_FILE})
     set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     target_include_directories(${EXECUTABLE_NAME} SYSTEM PRIVATE
-        ${opencv_SOURCE_DIR}/modules/core/include
-        ${opencv_SOURCE_DIR}/modules/imgproc/include
-        ${opencv_SOURCE_DIR}/modules/imgcodecs/include
-        ${opencv_SOURCE_DIR}/modules/highgui/include
+        ${opencv_SOURCE_DIR}/include
         ${CMAKE_BINARY_DIR}
     )
+    ocv_target_include_modules(${EXECUTABLE_NAME} ${OPENCV_MODULES_BUILD})
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE opencv_core opencv_imgcodecs opencv_highgui)
 endforeach()
