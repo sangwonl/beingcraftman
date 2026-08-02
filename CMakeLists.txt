@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
+
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "" FORCE)
+endif()
+
 project(MathPractices)
 
 # C++20 표준 사용
