@@ -27,6 +27,7 @@ foreach(CPP_FILE ${CPP_FILES})
     # 파일명에서 확장자 제거하여 실행파일 이름 생성
     get_filename_component(EXECUTABLE_NAME ${CPP_FILE} NAME_WE)
     add_executable(${EXECUTABLE_NAME} ${CPP_FILE} ${GLAD_SRC})
+    set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     target_include_directories(${EXECUTABLE_NAME} PRIVATE ${GLAD_INCLUDE} ${STB_INCLUDE})
     target_link_libraries(${EXECUTABLE_NAME} PRIVATE glfw glm::glm assimp::assimp)
 endforeach()

@@ -75,7 +75,7 @@ int main() {
   Shader ourShader(
       "shaders/shader-model-light.vs", "shaders/shader-model-light.fs");
 
-  Model ourModel("resources/backpack/backpack.obj");
+  Model ourModel("resources/models/backpack/backpack.obj");
 
   // clang-format off
   glm::vec3 pointLightPos[] = {

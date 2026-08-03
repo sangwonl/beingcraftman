@@ -73,7 +73,7 @@ int main() {
   // build and compile our shader program
   Shader ourShader("shaders/shader-model.vs", "shaders/shader-model.fs");
 
-  Model ourModel("resources/backpack/backpack.obj");
+  Model ourModel("resources/models/backpack/backpack.obj");
 
   while (!glfwWindowShouldClose(window)) {
     // per-frame time logic
