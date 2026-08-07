@@ -2,18 +2,27 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
-            "type": "shell",
+            "label": "configure",
+            "type": "process",
             "command": "cmake",
             "args": [
                 "-B",
                 "build",
-                "-DCMAKE_BUILD_TYPE=Debug",
-                "&&",
-                "cmake",
+                "-DCMAKE_BUILD_TYPE=Debug"
+            ],
+            "problemMatcher": [],
+            "detail": "Configure the CMake build directory"
+        },
+        {
+            "label": "build",
+            "type": "process",
+            "command": "cmake",
+            "args": [
                 "--build",
                 "build"
             ],
+            "dependsOn": "configure",
+            "dependsOrder": "sequence",
             "group": {
                 "kind": "build",
                 "isDefault": true
