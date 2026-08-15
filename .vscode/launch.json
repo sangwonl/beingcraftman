@@ -2,56 +2,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Current File (macOS)",
-            "type": "cppdbg",
+            "name": "Debug Current File",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/build/${relativeFileDirname}/${fileBasenameNoExtension}",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}/${relativeFileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
-            "preLaunchTask": "build",
-            "osx": {
-                "MIMode": "lldb"
-            }
+            "terminal": "integrated",
+            "preLaunchTask": "build"
         },
         {
-            "name": "Debug Current File (Linux)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/${relativeFileDirname}/${fileBasenameNoExtension}",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/${relativeFileDirname}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ],
-            "preLaunchTask": "build",
-            "miDebuggerPath": "/usr/bin/gdb",
-            "linux": {
-                "MIMode": "gdb"
-            }
-        },
-        {
-            "name": "Debug gazeshot_game (macOS)",
-            "type": "cppdbg",
+            "name": "Debug gazeshot",
+            "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/game/gazeshot/src/build/game/gazeshot_game",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "lldb",
+            "terminal": "integrated",
             "preLaunchTask": "build-gazeshot"
         }
     ]
